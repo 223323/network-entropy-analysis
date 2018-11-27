@@ -1,0 +1,7 @@
+## -*- Mode: python; py-indent-offset: 4; indent-tabs-mode: nil; coding: utf-8; -*-
+
+def build(bld):
+    
+    obj = bld.create_ns3_program('synflood', ['core', 'point-to-point', 'internet', 'applications', 'point-to-point-layout', 'netanim'])
+    obj.source = ['synflood2.cc', 'TcpSynFloodSocketFactory.cc', 'TcpSynFloodSocket.cc', 'TcpSynFloodHelper.cc']
+    # obj.source = 'synflood.cc'

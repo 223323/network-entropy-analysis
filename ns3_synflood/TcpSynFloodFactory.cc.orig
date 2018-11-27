@@ -1,0 +1,41 @@
+#include "TcpSynFloodFactory.h"
+#include "TcpSynFloodSocket.h"
+
+namespace ns3 {
+
+NS_LOG_COMPONENT_DEFINE ("TcpSynFloodFactory");
+
+NS_OBJECT_ENSURE_REGISTERED (TcpSynFloodFactory);
+
+TypeId TcpSynFloodFactory::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("ns3::TcpSynFloodFactory")
+    .SetParent<SocketFactory> ()
+    .AddConstructor<TcpSynFloodFactory> ()
+    .SetGroupName("Test");
+  return tid;
+}
+
+TcpSynFloodFactory::TcpSynFloodFactory ()
+{
+  m_factory.SetTypeId("ns3::TcpSynFloodSocket");
+  NS_LOG_FUNCTION (this);
+}
+
+void TcpSynFloodFactory::SetAttribute(std::string name, const AttributeValue &value) {
+	m_factory.Set(name, value);
+}
+
+Ptr<Socket> TcpSynFloodFactory::CreateSocket (void) {
+	auto sock = m_factory.Create<TcpSynFloodSocket>();
+	auto node = GetObject<Node>();
+	if(!node) {
+		return 0;
+	}
+	auto tcpl4proto = GetObject<TcpL4Protocol>();
+	sock->SetNode(node);
+	sock->SetTcp(tcpl4proto);
+	return sock;
+}
+
+}

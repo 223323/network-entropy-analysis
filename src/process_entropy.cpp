@@ -358,7 +358,7 @@ int parse_pcap(std::string filename) {
 	}
 	
 	printf("\nreading pcap file: %s\n", filename.c_str());
-
+	
 	const u_char *pkt_data;
 	int sec_first = 1;
 	double sec_offs = 0;
@@ -371,14 +371,20 @@ int parse_pcap(std::string filename) {
 		tcp_header* tcp = &pkt->tcp;
 		ip_header* ip = &pkt->ip;
 		
+		
 		int pkt_type = pcap_datalink(p);
 		if(pkt_type == DLT_LINUX_SLL) {
-			ip = (ip_header*)(pkt_data+16);
+			sll_header* sll = (sll_header*)pkt_data;
+			ip = (ip_header*)(pkt_data+sizeof(sll_header));
 			pkt = (tcp_packet*)(ip+1);
-			printf("COOKED PROTO %x\n", ip->proto);
-			if(ip->proto != PROTO_L4_TCP) {
-				printf("NOT TCP: %d\n", ip->proto);
-				exit(0);
+			// printf("COOKED PROTO %x\n", ip->proto);
+			
+			if(sll->proto == PROTO_L3_IPv4) {
+				if(ip->proto != PROTO_L4_TCP) {
+					continue;
+				}
+			} else {
+				continue;
 			}
 		} else {
 			if(ptp_pkt->ptp.type == PROTO_PTP) {

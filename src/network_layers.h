@@ -40,6 +40,15 @@ typedef struct t_ip_header
 	// u_int	op_pad;			// Option + Padding
 } ip_header;
 
+typedef struct sll_header {
+	u_short pkt_type;
+	u_short link_layer_address_type;
+	u_short link_layer_address_length;
+	mac_address smac;
+	u_short unused;
+	u_short proto;
+} sll_header;
+
 /* UDP header*/
 typedef struct udp_header
 {
@@ -80,6 +89,7 @@ typedef struct tcp_header {
 #define PROTO_L3_IPv4 8
 #define PROTO_L4_TCP 6
 #define PROTO_PTP 0x2100
+#define PROTO_ARP 0x0608
 
 typedef struct eth_header {
 	mac_address dmac;

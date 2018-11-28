@@ -9,5 +9,6 @@ Use makefile to build project.
 
 
 ```bash
-./process.sh --pcap <pcap_filepath> --end-time 60 [-m merge_cmd] [-a entropy_cmd] [-p postfix]
+cd scripts
+./process.sh --pcap <pcap_filepath> --end-time 60
 ```

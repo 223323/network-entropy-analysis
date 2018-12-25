@@ -177,7 +177,7 @@ cd ..
 outputs_folder=$archives_dir/outputs
 mkdir -p $outputs_folder
 date=$(date "+%d.%m.%Y_%H:%M:%S")
-output_name=$(basename $pcap)"$postfix"-"$date"
+output_name=$(basename "$pcap")"$postfix"-"$date"
 
 # archive as zip
 zip_dir=$archives_dir/archives

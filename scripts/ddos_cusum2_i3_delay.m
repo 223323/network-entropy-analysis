@@ -250,8 +250,8 @@ function ddos_cusum2_i3_delay(ent, att)
 	%print(f4, 'andetplot', '-djpg');
 
 	# write csv-s
-	csvwrite('tpplot.txt', tpplot);
-	csvwrite('fpplot.txt', fpplot);
+	csvwrite('data/tpplot.txt', tpplot);
+	csvwrite('data/fpplot.txt', fpplot);
 	% csvwrite('tiplot.txt', tiplot);
 
 

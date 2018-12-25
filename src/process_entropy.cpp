@@ -20,6 +20,8 @@
 #include <vector>
 #include <functional>
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 
 // #define USE_NAM_TRACE
 #define Q 2.0
@@ -86,6 +88,7 @@ void process_entropy();
 int threshold_min = 0;
 int threshold = 0;
 
+
 void init_vectors() {
 	num_intervals = max_time*num_subintervals;
 	intervals.resize(num_intervals+1);
@@ -96,6 +99,22 @@ void init_vectors() {
 		s.num_dst_ips.resize(num_ports);
 	}
 }
+
+std::vector<std::string> split(const std::string& s, char delimiter)
+{
+   std::vector<std::string> tokens;
+   std::string token;
+   std::istringstream tokenStream(s);
+   while (std::getline(tokenStream, token, delimiter))
+   {
+      tokens.push_back(token);
+   }
+   return tokens;
+}
+
+std::vector<int> ips;
+
+int server_is_dest = 1;
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
@@ -126,9 +145,20 @@ int main(int argc, char* argv[]) {
 			printf("set subintervals: %d\n", num_subintervals);
 		} else if(arg == "--no-verbose") {
 			verbose = false;
-		} else if(arg == "--verbose-sleep1") {
+		} else if(arg == "--src") {
+			server_is_dest = 0;
+		} else if(arg == "--server-ips") {
+			std::string s_ips(argv[++i]);
+			std::cout << "ips: " << s_ips << "\n";
+			for(auto ip : split(s_ips, ';')) {
+				// std::cout << "ip: " << ip << " : " << inet_network(ip.c_str())<< "\n";
+				// ips.push_back(inet_network(ip.c_str()));
+				ips.push_back(inet_addr(ip.c_str()));
+			}
+			// exit(0);
+		} else if(arg == "-vs1") {
 			verbose_sleep1 = atoi(argv[++i]);
-		} else if(arg == "--verbose-sleep2") {
+		} else if(arg == "-vs2") {
 			verbose_sleep2 = atoi(argv[++i]);
 		} else if(arg[0] != '-') {
 			filename = arg;
@@ -371,14 +401,18 @@ int parse_pcap(std::string filename) {
 		tcp_header* tcp = &pkt->tcp;
 		ip_header* ip = &pkt->ip;
 		
-		
 		int pkt_type = pcap_datalink(p);
 		if(pkt_type == DLT_LINUX_SLL) {
+			// printf("sll hdr: %d\n", sizeof(sll_header));
 			sll_header* sll = (sll_header*)pkt_data;
+			// printf("pkt size: %d\n", pkt_size);
+			// printf("size of IP: %d\n", sizeof(ip_header));
 			ip = (ip_header*)(pkt_data+sizeof(sll_header));
-			pkt = (tcp_packet*)(ip+1);
+			// tcp = (tcp_header*)(((char*)ip)+20);
+			tcp = (tcp_header*)(ip+1);
+			// printf("port: %04x %04x\n", ntohs(tcp->sport), ntohs(tcp->dport));
 			// printf("COOKED PROTO %x\n", ip->proto);
-			
+			// exit(0);
 			if(sll->proto == PROTO_L3_IPv4) {
 				if(ip->proto != PROTO_L4_TCP) {
 					continue;
@@ -441,9 +475,22 @@ int parse_pcap(std::string filename) {
 			dst_port = ntohs(tcp->dport) % num_ports;
 		}
 		
-		src_addr = ip->saddr.ip % num_ports;
-		dst_addr = ip->daddr.ip % num_ports;
+		src_addr = ip->saddr.ip;
+		dst_addr = ip->daddr.ip;
+		
+		if(ips.size() > 0) {
+			uint32_t match = server_is_dest ? dst_addr : src_addr;
+			// std::cout << "test: " << match << " : " << ips[1] <<"\n";
+			if(!std::any_of(ips.begin(), ips.end(), [&](int i){ return i == match; })) {
+				// skip packet
+				// exit(0);
+				continue;
+			}
+		}
 
+		src_addr = src_addr % num_ports;
+		dst_addr = dst_addr % num_ports;
+		
 		if(use_byte_entropy) {
 			interval.num_src_ports[src_port] += pkt_size;
 			interval.num_dst_ports[dst_port] += pkt_size;

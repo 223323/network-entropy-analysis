@@ -33,3 +33,9 @@
 
 entropy
 merge
+output/*
+outputs
+archives
+
+scripts/data
+*.cap

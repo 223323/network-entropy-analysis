@@ -13,7 +13,7 @@ ns3_app_cmd=
 ns3_pcap_name=
 pcap=
 start_attack=0.01
-
+attack_times="$(realpath attack-times.csv)"
 
 endtime=100
 subintervals=10
@@ -29,10 +29,10 @@ do
 	fi
 	
 	if [ $1 == '-m' ] || [ $1 == '--merge-cmd' ]; then
-		merge_cmd="$2"
+		merge_cmd="$merge_cmd $2"
 		shift
 	elif [ $1 == '-a' ] || [ $1 == '--app-cmd' ] || [ $1 == '--cmd' ]; then
-		entropy_cmd="$2"
+		entropy_cmd="$entropy_cmd $2"
 		shift
 	elif [ $1 == '-p' ]; then
 		postfix=$2
@@ -41,15 +41,19 @@ do
 		echo 'for NS3:'
 		echo '	./process.sh --ns3-app synflood --ns3-pcap-name pcap-1-0.pcap'
 		echo 'standalone:'
-		echo '	./process.sh --pcap <pcap_filepath> --end-time 60 [-m merge_cmd] [-a entropy_cmd] [-p postfix]'
+		echo '	./process.sh --pcap <pcap_filepath> [--end-time 60] [--attack-times=attack-times.csv] [-m merge_cmd] [-a entropy_cmd] [-p postfix]'
 		exit
 	elif [ $1 == '--tsalis' ]; then
 		postfix="${postfix}-tsalis"
 		entropy_cmd="$entropy_cmd --tsalis"
+	elif [ $1 == '--renyi' ]; then
+		postfix="${postfix}-renyi"
+		entropy_cmd="$entropy_cmd --renyi"
 	elif [ $1 == '--byte-entropy' ]; then
 		postfix="${postfix}-byte-entropy"
 		entropy_cmd="$entropy_cmd --byte-entropy"
-	elif [ $1 == '--no-verbose' ]; then
+	elif [ $1 == '--no-verbose' ] || [ $1 == '-s' ] || [ $1 == '-q' ]; then
+		# silent/quiet
 		entropy_cmd="$entropy_cmd --no-verbose"
 	elif [ $1 == '--ns3-app' ]; then
 		ns3_app=$2
@@ -72,11 +76,12 @@ do
 		shift
 	elif [ $1 == '--end-time' ] || [ $1 == '--endtime' ] || [ $1 == '--max-time' ]; then
 		endtime=$2
-		pltendtime=$endtime
-		entropy_cmd="$entropy_cmd --end-time $endtime"
 		shift
 	elif [ $1 == '--plot-end-time' ]; then
 		pltendtime=$2
+		shift
+	elif [ $1 == '--attack-times' ]; then
+		attack_times="$(realpath "$2")"
 		shift
 	fi
 	shift
@@ -90,7 +95,7 @@ echo 'ns3_app = ' $ns3_app
 echo 'ns3_app_cmd = ' $ns3_app_cmd
 
 # cd to project base dir
-cd ../
+# cd ../
 
 # process ns3 app
 if [ ! -z $ns3_app ]; then
@@ -138,11 +143,14 @@ if [ $? != 0 ]; then
 	exit
 fi
 
+
+pltendtime=${pltendtime:-$endtime}
+
 # run entropy analysis
 echo '------------------'
 echo 'running entropy analysis'
 echo ./entropy $pcap $entropy_cmd
-./entropy "$pcap" $entropy_cmd
+./entropy "$pcap" $entropy_cmd --end-time $endtime
 
 if [ $? != 0 ]; then
 	echo
@@ -165,7 +173,7 @@ cd output
 
 echo '------------------'
 echo 'plotting diagrams'
-octave-cli --path "../scripts" --eval "plot_all($start_attack, $pltendtime, $subintervals)" # 2> /dev/null
+octave-cli --path "../scripts" --eval "plot_all($start_attack, $pltendtime, $subintervals, \"$attack_times\")" # 2> /dev/null
 echo '------------------'
 echo "$0 $calling_cmd" > cmd.txt
 

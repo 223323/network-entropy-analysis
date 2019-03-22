@@ -1,4 +1,4 @@
-function plot_all(start_attack_time, end_time, subintervals)
+function plot_all(start_attack_time, end_time, subintervals, attack_times)
 	filelist = readdir (pwd);
 	for i = 1:numel(filelist)
 	  file = filelist{i};
@@ -9,6 +9,6 @@ function plot_all(start_attack_time, end_time, subintervals)
 		continue;
 	  end
 	  disp(['plotting ' filelist{i}])
-	  plot_data(filelist{i}, start_attack_time, end_time, subintervals)
+	  plot_data(filelist{i}, start_attack_time, end_time, subintervals, attack_times)
 	end
 end

@@ -21,4 +21,13 @@ class TsalisEntropy : public Entropy {
 		double m_q;
 };
 
+class RenyiEntropy : public Entropy {
+	public:
+		RenyiEntropy(double q);
+		void Add(double p);
+		double GetValue(bool normalized=true);
+	private:
+		double m_q;
+};
+
 #endif

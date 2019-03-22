@@ -70,6 +70,7 @@ std::vector<Interval> intervals;
 
 // cmdline
 bool use_tsalis = false;
+bool use_renyi = false;
 bool use_byte_entropy = false;
 int verbose_sleep1 = 0;
 int verbose_sleep2 = 0;
@@ -131,6 +132,8 @@ int main(int argc, char* argv[]) {
 			threshold = atoi(argv[++i]);
 		} else if(arg == "-tm") {
 			threshold_min = atoi(argv[++i]);
+		} else if(arg == "--renyi") {
+			use_renyi = true;
 		} else if(arg == "--tsalis") {
 			use_tsalis = true;
 		} else if(arg == "--byte-entropy") {
@@ -232,6 +235,14 @@ void process_entropy() {
 			
 			srcip_entropy = std::make_unique<TsalisEntropy>(Q);
 			dstip_entropy = std::make_unique<TsalisEntropy>(Q);
+		}
+		
+		if(use_renyi) {
+			srcport_entropy = std::make_unique<RenyiEntropy>(Q);
+			dstport_entropy = std::make_unique<RenyiEntropy>(Q);
+			
+			srcip_entropy = std::make_unique<RenyiEntropy>(Q);
+			dstip_entropy = std::make_unique<RenyiEntropy>(Q);
 		}
 
 		for (i=0; i < num_subintervals; i++) {

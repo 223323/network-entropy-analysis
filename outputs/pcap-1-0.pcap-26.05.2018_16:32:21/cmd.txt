@@ -1,1 +1,0 @@
-./process.sh --ns3-app synflood --ns3-pcap-name pcap-1-0.pcap

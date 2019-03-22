@@ -1,4 +1,4 @@
-function plot_data(filename, start_time=0.1, end_time=115, subintervals=10)
+function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, attack_times="data/attack-times.csv")
 	data = dlmread(filename);
 	data = [repmat([0], 1, subintervals/2) data]
 	graphics_toolkit gnuplot
@@ -51,12 +51,13 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10)
 		end
 	end
 	
-	atk_time_filename = 'data/attack-times.csv';
+	atk_time_filename = attack_times;
 	if exist(atk_time_filename, 'file')
 		t2=csvread(atk_time_filename);
 		n=length(t2);
 		l=prod(size(t2));
 		d=reshape( repmat( reshape(t2, 1, l), 2, 1), 1, l*2 );
+		d = d - 0.5
 		plot(d, repmat([0,b,b,0], 1, n));
 	end
 	

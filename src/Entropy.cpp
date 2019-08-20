@@ -3,6 +3,8 @@
 
 Entropy::Entropy() : m_value(0.0), m_count(0) {}
 
+// Shannon
+// ----------------------------------------
 void Entropy::Add(double p) {
 	if(p == 0) {
 		m_value = 0;
@@ -29,7 +31,7 @@ double Entropy::GetValue(bool normalized) {
 }
 
 // Tsalis
-
+// ----------------------------------------
 TsalisEntropy::TsalisEntropy(double q) {
 	m_q = q;
 	m_count=0;
@@ -53,6 +55,7 @@ double TsalisEntropy::GetValue(bool normalized) {
 
 
 // Renyi entropy
+// ----------------------------------------
 RenyiEntropy::RenyiEntropy(double Q) {
 	m_q = Q;
 	m_value=0;

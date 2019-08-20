@@ -38,10 +38,7 @@ function ddos_cusum2_i3_delay(ent, att)
 	timax = 0;
 
 	thinc = 0.5;
-
-
-
-	for (th1 = thmin:thinc:thmax) % iterate threshold range
+	for th1 = thmin:thinc:thmax % iterate threshold range
 
 		%[ent_pn_det, ent_pn_filt, ent_pn_filt2] = detect_cusum(100-ent_pn, th1);
 		%[ent_bn_det, ent_bn_filt, ent_bn_filt2] = detect_cusum(100-ent_bn, th1);

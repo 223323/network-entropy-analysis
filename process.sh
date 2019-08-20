@@ -70,6 +70,9 @@ do
 	elif [ $1 == '--start-attack' ]; then
 		start_attack=$2
 		shift
+	elif [ $1 == '--time-scale' ]; then
+		entropy_cmd="$entropy_cmd --time-scale $2"
+		shift
 	elif [ $1 == '--subintervals' ]; then
 		subintervals=$2
 		entropy_cmd="$entropy_cmd --subintervals $subintervals"

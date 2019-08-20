@@ -4,10 +4,7 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 	graphics_toolkit gnuplot
 	end_interval = find(data == 0, 1, 'first');
 	% end_interval = length(data);
-	
 	% data2 = dlmread('dos_detection.txt');
-	
-	
 	
 	b = max(max(data))+5;
 	a = 0;
@@ -27,9 +24,11 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 		disp([filename 'not printed'])
 		return
 	end
-	
+	plot_data = data(start_interval:end_interval);
+	ll = size(t),
+	ll1 = size(plot_data),
 	% axis('tight')
-	plot(t, data(start_interval:end_interval), '-', "linewidth",2);
+	plot(t, plot_data, '-', "linewidth",2);
 	xlabel('t[s]')
 	xlim([start_time end_time])
 	% ylim('auto')
@@ -58,8 +57,15 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 		l=prod(size(t2));
 		d=reshape( repmat( reshape(t2, 1, l), 2, 1), 1, l*2 );
 		d = d - 0.5
-		plot(d, repmat([0,b,b,0], 1, n));
+		
+		plot_data = repmat([0,b,b,0], 1, n);
+		ll2 = size(d),
+		ll3 = size(plot_data),
+	
+		plot(d, plot_data);
 	end
+	
+	
 	
 	% set (gca, 'xgrid', 'on')
 	print(h, strcat(filename, '.png'), '-dpng', '-S800,400')

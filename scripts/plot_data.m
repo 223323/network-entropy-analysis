@@ -65,7 +65,7 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 		plot(d, plot_data);
 	end
 	
-	
+	subintervals
 	
 	% set (gca, 'xgrid', 'on')
 	print(h, strcat(filename, '.png'), '-dpng', '-S800,400')

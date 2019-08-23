@@ -38,10 +38,10 @@
 
 // ----- data for processing ------
 int num_intervals;
-int num_subintervals = NUM_SUBINTERVALS;
+int num_subintervals = NUM_SUBINTERVALS; // intervals per second
 int max_time = MAX_TIME;
 int num_ports = NUM_PORTS;
-double time_scale = 1.0;
+double window_size_seconds = 1.0;
 
 struct Interval {
 	int num_packets;
@@ -98,7 +98,8 @@ int threshold = 0;
 
 
 void init_vectors() {
-	num_intervals = max_time*num_subintervals;
+	// num_intervals = max_time*window_size_seconds*num_subintervals;
+	num_intervals = max_time * num_subintervals/window_size_seconds;
 	intervals.resize(num_intervals+1);
 	for(auto &s : intervals) {
 		s.num_src_ports.resize(num_ports);
@@ -155,7 +156,7 @@ int main(int argc, char* argv[]) {
 			num_subintervals = atoi(argv[++i]);
 			printf("set subintervals: %d\n", num_subintervals);
 		} else if(arg == "--time-scale") {
-			time_scale = atof(argv[++i]);
+			window_size_seconds = atof(argv[++i]);
 		} else if(arg == "--no-verbose") {
 			verbose = false;
 		} else if(arg == "--src") {
@@ -302,7 +303,6 @@ void process_entropy() {
 			}
 
 			if (ps != 0) packet_sizes_entropy->Add(ps / (double)total_packets);
-			
 		}
 		
 		srcport_entropy->SetCount(UINT16_MAX);
@@ -392,8 +392,9 @@ void print_result() {
 
 	FILE* outf;
 	int i, sec;
-	int n = (max_time) * num_subintervals;
+	int n = num_intervals;
 	
+	put_result_double("num_df.txt", [](int i) { return intervals[i].num_df / std::max(1, intervals[i].num_packets); }, n);
 	put_result_double("ent_df.txt", [](int i) { return intervals[i].ent_flag_df; }, n);
 	put_result_double("ent_pn.txt", [](int i) { return intervals[i].ent_pktnum; }, n);
 	put_result_double("ent_bn.txt", [](int i) { return intervals[i].ent_bytenum; }, n);
@@ -480,14 +481,15 @@ int parse_pcap(std::string filename) {
 		}
 
 		time = (double)(pcap_hdr.ts.tv_sec + pcap_hdr.ts.tv_usec * 1e-6) - sec_offs;
-		sec = (int)time/time_scale;
-		sub_int = (int)(fmod(time, 1.0*time_scale)/time_scale*num_subintervals);
+		sec = (int)time;
+		sub_int = (int)(fmod(time, 1.0)*num_subintervals);
 		
 		if(sec >= max_time) {
 			return 0;
 		}
 
-		const int i = sec*num_subintervals+sub_int;
+		const int i = num_intervals * time / (double)max_time;
+		// const int i = sec*num_subintervals+sub_int;
 		auto& interval = intervals[i];
 		
 		bool has_syn = false;
@@ -528,8 +530,11 @@ int parse_pcap(std::string filename) {
 		}
 		
 		// if(ip->flags_fo & (1 << 14)) {
-		if(ip->flags_fo & (1 << 6)) {
+		if( ip->flags_fo & (1 << (7-1)) ) {
+			std::cout << "dont fragment flag\n";
 			interval.num_df += 1;
+		} else {
+			std::cout << "NO dont fragment flag\n";
 		}
 		
 		src_addr = ip->saddr.ip;

@@ -72,6 +72,7 @@ do
 		shift
 	elif [ $1 == '--time-scale' ]; then
 		entropy_cmd="$entropy_cmd --time-scale $2"
+		subintervals=$(($subintervals/$2))
 		shift
 	elif [ $1 == '--subintervals' ]; then
 		subintervals=$2

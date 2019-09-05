@@ -13,7 +13,6 @@ ns3_app_cmd=
 ns3_pcap_name=
 pcap=
 start_attack=0.01
-attack_times="$(realpath attack-times.csv)"
 
 endtime=100
 subintervals=10
@@ -41,16 +40,23 @@ do
 		echo 'for NS3:'
 		echo '	./process.sh --ns3-app synflood --ns3-pcap-name pcap-1-0.pcap'
 		echo 'standalone:'
-		echo '	./process.sh --pcap <pcap_filepath> [--end-time 60] [--attack-times=attack-times.csv] [-m merge_cmd] [-a entropy_cmd] [-p postfix]'
+		echo '	./process.sh --pcap <pcap_filepath> [--end-time 60] [--attack-times file.csv] [-m merge_cmd] [-a entropy_cmd] [-p postfix]'
 		exit
+	elif [ $1 == '-Q' ]; then
+		entropy_cmd="$entropy_cmd --entropy-q $2"
+		entropy_type="${entropy_type} -Q $2"
+		shift
+	elif [ $1 == '--shannon' ]; then
+		entropy_type="${entropy_type} --shannon"
+		entropy_cmd="$entropy_cmd --shannon"
 	elif [ $1 == '--tsalis' ]; then
-		postfix="${postfix}-tsalis"
+		entropy_type="${entropy_type} --tsalis"
 		entropy_cmd="$entropy_cmd --tsalis"
 	elif [ $1 == '--renyi' ]; then
-		postfix="${postfix}-renyi"
+		entropy_type="${entropy_type} --renyi"
 		entropy_cmd="$entropy_cmd --renyi"
 	elif [ $1 == '--byte-entropy' ]; then
-		postfix="${postfix}-byte-entropy"
+		entropy_type="${entropy_type} --byte-entropy"
 		entropy_cmd="$entropy_cmd --byte-entropy"
 	elif [ $1 == '--no-verbose' ] || [ $1 == '-s' ] || [ $1 == '-q' ]; then
 		# silent/quiet
@@ -65,12 +71,16 @@ do
 		ns3_pcap_name=$2
 		shift
 	elif [ $1 == '-p' ] || [ $1 == '--pcap' ]; then
+		# attack_times=$(realpath --relative-to scripts ${attack_times:-"${2%.*}.csv"})
 		pcap=$(realpath $2)
 		shift
 	elif [ $1 == '--start-attack' ]; then
 		start_attack=$2
 		shift
 	elif [ $1 == '--time-scale' ]; then
+		if [ $2 != 1 ]; then
+			postfix="${postfix} --time-scale $2"
+		fi
 		entropy_cmd="$entropy_cmd --time-scale $2"
 		subintervals=$(($subintervals/$2))
 		shift
@@ -85,13 +95,21 @@ do
 		pltendtime=$2
 		shift
 	elif [ $1 == '--attack-times' ]; then
-		attack_times="$(realpath "$2")"
+		attack_times="$(realpath --relative-to scripts "$2")"
 		shift
 	fi
 	shift
 done
 
+entropy_type=${entropy_type:-"--shannon"}
 
+# echo $attack_times
+# attack_times=${attack_times:-"$(realpath --relative-to scripts $(dirname $pcap) ${pcap%.*}.csv)"}
+
+# echo $attack_times
+
+# exit
+postfix="${postfix} ${entropy_type}"
 
 echo 'merge_cmd = ' $merge_cmd
 echo 'entropy cmd = ' $entropy_cmd
@@ -124,15 +142,13 @@ if [ ! -z $ns3_app ]; then
 	popd
 fi
 
-
-
 # backup prev output if exists
 if [ -e output ]
 then
 	bkp_to=output-$RANDOM.zip
 	bkp_path=$archives_dir/backups
 	while [ -e $bkp_path/$bkp_to ];
-	do	
+	do
 		bkp_to=output-$RANDOM.zip
 	done
 	zip -r $bkp_path/$bkp_to.zip output
@@ -180,6 +196,8 @@ echo 'plotting diagrams'
 octave-cli --path "../scripts" --eval "plot_all($start_attack, $pltendtime, $subintervals, \"$attack_times\")" # 2> /dev/null
 echo '------------------'
 echo "$0 $calling_cmd" > cmd.txt
+echo "./entropy $entropy_cmd" >> cmd.txt
+echo "plot " octave-cli --path "." --eval "plot_all($start_attack, $pltendtime, $subintervals, \"$attack_times\")" >> cmd.txt
 
 
 # back to project base dir
@@ -188,18 +206,18 @@ cd ..
 # outputs folder
 outputs_folder=$archives_dir/outputs
 mkdir -p $outputs_folder
-date=$(date "+%d.%m.%Y_%H:%M:%S")
-output_name=$(basename "$pcap")"$postfix"-"$date"
+date=$(date "+%d.%m %H:%M:%S")
+output_name=$(basename "$pcap")"$postfix ($date)"
 
 # archive as zip
-zip_dir=$archives_dir/archives
-mkdir -p $zip_dir
-archive=$zip_dir/$output_name.zip
-echo 'creating archive ' $archive
-zip -r $archive output > /dev/null
+zip_dir="$archives_dir/archives"
+mkdir -p "$zip_dir"
+archive="$zip_dir/$output_name.zip"
+echo 'creating archive ' "$archive"
+zip -r "$archive" output > /dev/null
 
 # move to outputs folder
-mv output $outputs_folder/$output_name
+mv output "$outputs_folder/$output_name"
 
-echo output saved to $outputs_folder/$output_name
+echo output saved to "$outputs_folder/$output_name"
 

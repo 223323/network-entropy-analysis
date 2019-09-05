@@ -1,10 +1,10 @@
 #include "Entropy.h"
 #include <cmath>
 
-Entropy::Entropy() : m_value(0.0), m_count(0) {}
 
 // Shannon
 // ----------------------------------------
+Entropy::Entropy() : m_value(0.0), m_count(0) {}
 void Entropy::Add(double p) {
 	if(p == 0) {
 		m_value = 0;

@@ -24,7 +24,7 @@
 #include <algorithm>
 
 // #define USE_NAM_TRACE
-#define Q 2.0
+#define Q entropy_arg
 
 // default params
 #define NUM_SUBINTERVALS 10
@@ -82,6 +82,7 @@ bool use_byte_entropy = false;
 int verbose_sleep1 = 0;
 int verbose_sleep2 = 0;
 bool verbose = true;
+float entropy_arg = 2.0;
 //
 
 int t_total_packets = 0;
@@ -157,6 +158,8 @@ int main(int argc, char* argv[]) {
 			printf("set subintervals: %d\n", num_subintervals);
 		} else if(arg == "--time-scale") {
 			window_size_seconds = atof(argv[++i]);
+		} else if(arg == "--entropy-q") {
+			entropy_arg = atof(argv[++i]);
 		} else if(arg == "--no-verbose") {
 			verbose = false;
 		} else if(arg == "--src") {
@@ -429,6 +432,11 @@ int parse_pcap(std::string filename) {
 	struct pcap_pkthdr pcap_hdr;
 	
 	printf("\nopening pcap: %s\n", filename.c_str());
+	
+	if( access( filename.c_str(), F_OK ) == -1 ) {
+		return -1;
+	}
+	
 	pcap_t* p = pcap_open_offline(filename.c_str(), errbuff);
 	
 	if(!p) {
@@ -519,7 +527,8 @@ int parse_pcap(std::string filename) {
 		interval.num_bytes += pkt_size;
 		interval.num_packets++;
 		
-		std::cout << "pakcet size: " << pkt_size << "\n";
+		if(verbose)
+			std::cout << "packet size: " << pkt_size << " ";
 		if(pkt_size < interval.num_packet_sizes.size()) {
 			interval.num_packet_sizes[pkt_size]++;
 		}
@@ -531,11 +540,15 @@ int parse_pcap(std::string filename) {
 		
 		// if(ip->flags_fo & (1 << 14)) {
 		if( ip->flags_fo & (1 << (7-1)) ) {
-			std::cout << "dont fragment flag\n";
+			if(verbose)
+				std::cout << "DF ";
 			interval.num_df += 1;
 		} else {
-			std::cout << "NO dont fragment flag\n";
+			// std::cout << "NO dont fragment flag\n";
 		}
+		
+		if(verbose)
+		std::cout << "\n";
 		
 		src_addr = ip->saddr.ip;
 		dst_addr = ip->daddr.ip;
@@ -556,13 +569,11 @@ int parse_pcap(std::string filename) {
 		if(use_byte_entropy) {
 			interval.num_src_ports[src_port] += pkt_size;
 			interval.num_dst_ports[dst_port] += pkt_size;
-			
 			interval.num_src_ips[src_addr] += pkt_size;
 			interval.num_dst_ips[dst_addr] += pkt_size;
 		} else {
 			interval.num_src_ports[src_port]++;
 			interval.num_dst_ports[dst_port]++;
-			
 			interval.num_src_ips[src_addr]++;
 			interval.num_dst_ips[dst_addr]++;
 		}

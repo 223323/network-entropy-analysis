@@ -24,7 +24,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 
 	thmin = 0.0;
 	thmax = 35.0;
-	thinc = 0.5;
+	thinc = 1.5;
 	
 	% cusums = [];
 	for th1 = thmin:thinc:thmax % iterate threshold range
@@ -57,7 +57,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 			
 			b1 = a + floor(true_positive_ratio*(b-a)); % (a |=======|--- b)
 			
-			disp(['interval: ' num2str(a) ' ' num2str(b)])
+			% disp(['interval: ' num2str(a) ' ' num2str(b)])
 			
 			% find when did attack start
 			% if i > 1

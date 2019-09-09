@@ -2,7 +2,7 @@
 #include <cmath>
 
 
-// Shannon
+// Entropy
 // ----------------------------------------
 Entropy::Entropy(double q) : m_value(0.0), m_count(0), m_q(q) {}
 void Entropy::Add(double p) {
@@ -24,6 +24,7 @@ Entropy* Entropy::New() {
 }
 
 // Shannon
+// ----------------------------------------
 ShannonEntropy::ShannonEntropy(double Q) : Entropy(Q) {
 	
 }
@@ -65,12 +66,12 @@ void TsalisEntropy::Add(double p) {
 double TsalisEntropy::GetValue(bool normalized) {
 	if(normalized) {
 		double denom = 1 - pow(m_count, 1-m_q);
-		return (1-m_value) * (denom > 0 ? (100.0 / denom) : 0);
+		return std::abs(1 - m_value) * (denom > 0 ? (100.0 / denom) : 0);
 	} else {
 		return m_value;
 	}
-	
 }
+
 Entropy* TsalisEntropy::New() {
 	return new TsalisEntropy(m_q);
 }

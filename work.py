@@ -22,8 +22,12 @@ for ff in files:
 	pcap_file = os.path.join(pcap_dir, f+'.cap')
 	attack_times_file = os.path.join(pcap_dir, f+'.csv')
 	for entropy in ['renyi', 'tsalis']:
+	# for entropy in ['tsalis']:
 		for q in frange(-2,2,0.1):
-			if q == 0: continue
+			if q == 0.0: continue
+			
+			if entropy == 'tsalis' and q <= 0.0: continue
+			
 			if os.path.exists('output'):
 				shutil.rmtree('output')
 			
@@ -33,7 +37,7 @@ for ff in files:
 				pcap_file,
 				'--end-time', str(end_time),
 				'--'+entropy,
-				'--entropy-q', str(q),
+				'--entropy-q', ('%.2f' % q),
 				'--no-verbose',
 			]
 			print('running ', cmdline)

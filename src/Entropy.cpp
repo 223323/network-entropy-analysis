@@ -4,8 +4,31 @@
 
 // Shannon
 // ----------------------------------------
-Entropy::Entropy() : m_value(0.0), m_count(0) {}
+Entropy::Entropy(double q) : m_value(0.0), m_count(0), m_q(q) {}
 void Entropy::Add(double p) {
+	
+}
+
+void Entropy::SetCount(int count) {
+	m_count = count;
+}
+void Entropy::SetQ(double q) {
+	m_q = q;
+}
+double Entropy::GetValue(bool normalized) {
+	return m_value;
+}
+
+Entropy* Entropy::New() {
+	return new Entropy(m_q);
+}
+
+// Shannon
+ShannonEntropy::ShannonEntropy(double Q) : Entropy(Q) {
+	
+}
+
+void ShannonEntropy::Add(double p) {
 	if(p == 0) {
 		m_value = 0;
 	} else {
@@ -14,11 +37,7 @@ void Entropy::Add(double p) {
 	m_count++;
 }
 
-void Entropy::SetCount(int count) {
-	m_count = count;
-}
-
-double Entropy::GetValue(bool normalized) {
+double ShannonEntropy::GetValue(bool normalized) {
 	if(normalized) {
 		if(m_count <= 1) {
 			return m_value;
@@ -29,13 +48,13 @@ double Entropy::GetValue(bool normalized) {
 		return m_value;
 	}
 }
+Entropy* ShannonEntropy::New() {
+	return new ShannonEntropy(m_q);
+}
 
 // Tsalis
 // ----------------------------------------
-TsalisEntropy::TsalisEntropy(double q) {
-	m_q = q;
-	m_count=0;
-	m_value=0;
+TsalisEntropy::TsalisEntropy(double q) : Entropy(q) {
 }
 
 void TsalisEntropy::Add(double p) {
@@ -52,14 +71,13 @@ double TsalisEntropy::GetValue(bool normalized) {
 	}
 	
 }
-
+Entropy* TsalisEntropy::New() {
+	return new TsalisEntropy(m_q);
+}
 
 // Renyi entropy
 // ----------------------------------------
-RenyiEntropy::RenyiEntropy(double Q) {
-	m_q = Q;
-	m_value=0;
-	m_count=0;
+RenyiEntropy::RenyiEntropy(double Q) : Entropy(Q) {
 }
 
 void RenyiEntropy::Add(double p) {
@@ -75,4 +93,7 @@ double RenyiEntropy::GetValue(bool normalized) {
 	} else {
 		return m_value;
 	}
+}
+Entropy* RenyiEntropy::New() {
+	return new RenyiEntropy(m_q);
 }

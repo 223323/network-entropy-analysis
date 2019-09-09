@@ -23,7 +23,9 @@
 #include <sstream>
 #include <algorithm>
 
-// #define USE_NAM_TRACE
+#include <list>
+
+
 #define Q entropy_arg
 
 // default params
@@ -64,20 +66,25 @@ struct Interval {
 	double ent_dstip;
 	double ent_flag_df;
 	double ent_pkt_sizes;
+	double ent_stream;
 	
 	int dos_detection;
 	int tot_pktnum;
 	int tot_syn;
-
+	
+	std::vector<std::pair<uint64_t, int>> stream_traces;
 };
 
+uint64_t calc_hash(int sip, int sport, int dip, int dport, int proto) {
+	return ((((sip*33 + sport)*33 + dip)*33 + dport)*33 + proto);
+}
+
 std::vector<Interval> intervals;
+Entropy* entropy_factory = new ShannonEntropy(0);
 
 // -----------------
 
 // cmdline
-bool use_tsalis = false;
-bool use_renyi = false;
 bool use_byte_entropy = false;
 int verbose_sleep1 = 0;
 int verbose_sleep2 = 0;
@@ -99,7 +106,6 @@ int threshold = 0;
 
 
 void init_vectors() {
-	// num_intervals = max_time*window_size_seconds*num_subintervals;
 	num_intervals = max_time * num_subintervals/window_size_seconds;
 	intervals.resize(num_intervals+1);
 	for(auto &s : intervals) {
@@ -143,9 +149,9 @@ int main(int argc, char* argv[]) {
 		} else if(arg == "-tm") {
 			threshold_min = atoi(argv[++i]);
 		} else if(arg == "--renyi") {
-			use_renyi = true;
+			entropy_factory = new RenyiEntropy(0);
 		} else if(arg == "--tsalis") {
-			use_tsalis = true;
+			entropy_factory = new TsalisEntropy(0);
 		} else if(arg == "--byte-entropy") {
 			use_byte_entropy = true;
 		} else if(arg == "--num-ports") {
@@ -168,11 +174,8 @@ int main(int argc, char* argv[]) {
 			std::string s_ips(argv[++i]);
 			std::cout << "ips: " << s_ips << "\n";
 			for(auto ip : split(s_ips, ';')) {
-				// std::cout << "ip: " << ip << " : " << inet_network(ip.c_str())<< "\n";
-				// ips.push_back(inet_network(ip.c_str()));
 				ips.push_back(inet_addr(ip.c_str()));
 			}
-			// exit(0);
 		} else if(arg == "-vs1") {
 			verbose_sleep1 = atoi(argv[++i]);
 		} else if(arg == "-vs2") {
@@ -199,21 +202,51 @@ int main(int argc, char* argv[]) {
 			return -1;
 		}
 	}
-
+	
 	process_entropy();
-
 	print_result();
 	
 	return 0;
 }
 
-int sum(int *array, int start_index, int count) {
-	int end = start_index+count;
-	int i, s=0;
-	for(i=start_index; i < end; i++) {
-		s += array[i];
+// stream traces
+struct Window {
+	int last_seen;
+	int value;
+};
+std::list<std::pair<uint64_t, Window>> recent_stream;
+void stream_update(int i) {
+	for(auto& s : intervals[i].stream_traces) {
+		bool found=false;
+		for(auto r = recent_stream.begin(); r != recent_stream.end(); ) {
+			if(r->first == s.first) {
+				found = true;
+				
+				int a = std::max(0,r->second.last_seen-num_subintervals);
+				int b = std::min(r->second.last_seen, i-num_subintervals);
+				for(int j = a; j < b; j++) {
+					for(auto& s1 : intervals[j].stream_traces) {
+						if(s1.first == r->first) {
+							r->second.value -= s1.second;
+							break;
+						}
+					}
+				}
+				r->second.last_seen = i;
+				r->second.value += s.second;
+				break;
+			} else {
+				if(r->second.last_seen+num_subintervals < i) {
+					r = recent_stream.erase(r);
+				} else {
+					++r;
+				}
+			}
+		}
+		if(!found) {
+			recent_stream.push_back( {s.first, {.last_seen=i, .value=s.second}} );
+		}
 	}
-	return s;
 }
 
 void process_entropy() {
@@ -230,6 +263,9 @@ void process_entropy() {
 		total_syn += intervals[i].num_syn;
 		total_df += intervals[i].num_df;
 		total_bytes += intervals[i].num_bytes;
+		
+		// stream entropy
+		stream_update(i);
 	}
 
 	t_total_bytes = total_bytes;
@@ -237,36 +273,19 @@ void process_entropy() {
 	// calculate entropy for each window
 	for (j=0; j < num_intervals - num_subintervals; j++) {
 		const int j1 = j + num_subintervals;
-
-		std::unique_ptr<Entropy> flag_df_entropy (new Entropy());
-		std::unique_ptr<Entropy> pktnum_entropy (new Entropy());
-		std::unique_ptr<Entropy> bytenum_entropy (new Entropy());
+		if(verbose)
+			std::cout << "processing " << j << " / " << num_intervals << "\n";
+		entropy_factory->SetQ(Q);
+		std::unique_ptr<Entropy> flag_df_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> pktnum_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> bytenum_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> srcport_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> dstport_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> srcip_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> dstip_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> packet_sizes_entropy(entropy_factory->New());
+		std::unique_ptr<Entropy> stream_entropy(entropy_factory->New());
 		
-		std::unique_ptr<Entropy> srcport_entropy(new Entropy());
-		std::unique_ptr<Entropy> dstport_entropy(new Entropy());
-		std::unique_ptr<Entropy> srcip_entropy(new Entropy());
-		std::unique_ptr<Entropy> dstip_entropy(new Entropy());
-		std::unique_ptr<Entropy> packet_sizes_entropy(new Entropy());
-
-		if(use_tsalis) {
-			flag_df_entropy = std::make_unique<TsalisEntropy>(Q);
-			srcport_entropy = std::make_unique<TsalisEntropy>(Q);
-			dstport_entropy = std::make_unique<TsalisEntropy>(Q);
-			
-			srcip_entropy = std::make_unique<TsalisEntropy>(Q);
-			dstip_entropy = std::make_unique<TsalisEntropy>(Q);
-			packet_sizes_entropy = std::make_unique<TsalisEntropy>(Q);
-		}
-		
-		if(use_renyi) {
-			flag_df_entropy = std::make_unique<RenyiEntropy>(Q);
-			srcport_entropy = std::make_unique<RenyiEntropy>(Q);
-			dstport_entropy = std::make_unique<RenyiEntropy>(Q);
-			packet_sizes_entropy = std::make_unique<RenyiEntropy>(Q);
-			
-			srcip_entropy = std::make_unique<RenyiEntropy>(Q);
-			dstip_entropy = std::make_unique<RenyiEntropy>(Q);
-		}
 
 		for (i=0; i < num_subintervals; i++) {
 			if (intervals[j+i].num_packets != 0) {
@@ -280,6 +299,15 @@ void process_entropy() {
 		intervals[j].ent_bytenum = bytenum_entropy->GetValue();
 		intervals[j].tot_pktnum = total_packets;
 		intervals[j].tot_syn = total_syn;
+		
+		// stream entropy
+		double stream_total = 0;
+		for(auto &s : recent_stream) {
+			stream_total = s.second.value;
+		}
+		for(auto &s : recent_stream) {
+			stream_entropy->Add( s.second.value / stream_total );
+		}
 
 		for (i=0; i < num_ports; i++) {
 			int k, srcp=0, dstp=0;
@@ -321,8 +349,8 @@ void process_entropy() {
 		intervals[j].ent_pkt_sizes = packet_sizes_entropy->GetValue();
 
 		intervals[j].ent_flag_df = flag_df_entropy->GetValue();
-		// intervals[j].ent_flag_df = total_df;
-		/*
+		intervals[j].ent_stream = stream_entropy->GetValue();
+		
 		if(threshold > 0) {
 			if(intervals[j].ent_dstport < threshold) {
 				intervals[j].dos_detection = intervals[j].ent_dstport;
@@ -330,7 +358,6 @@ void process_entropy() {
 				intervals[j].dos_detection = threshold_min;
 			}
 		}
-		*/
 
 		if(verbose) {
 			printf("%3d, pn=%4d, S(pn)=%0.2lf%%, S(bn)=%0.2lf%%, S(sp)=%0.2lf%%, S(dp)=%0.2lf%% S(sip)=%0.2lf%%, S(dip)=%0.2lf%%\n",
@@ -359,10 +386,13 @@ void process_entropy() {
 		total_bytes += (intervals[j1].num_bytes - intervals[j].num_bytes);
 		total_df += (intervals[j1].num_df - intervals[j].num_df);
 		t_total_bytes += intervals[j1].num_bytes;
+		
+		// stream entropy
+		stream_update(j1);
 	}
 }
 
-void put_result_double(const char* filename, std::function<double(int)> r, int num) {
+void save_result_double(const char* filename, std::function<double(int)> r, int num) {
 	char file[50];
 	strcpy(file, OUTPUT);
 	strcat(file, filename);
@@ -376,7 +406,7 @@ void put_result_double(const char* filename, std::function<double(int)> r, int n
 	fclose(f);
 }
 
-void put_result_int(const char* filename, std::function<int(int)> r, int num) {
+void save_result_int(const char* filename, std::function<int(int)> r, int num) {
 	char file[50];
 	strcpy(file, OUTPUT);
 	strcat(file, filename);
@@ -397,20 +427,21 @@ void print_result() {
 	int i, sec;
 	int n = num_intervals;
 	
-	put_result_double("num_df.txt", [](int i) { return intervals[i].num_df / std::max(1, intervals[i].num_packets); }, n);
-	put_result_double("ent_df.txt", [](int i) { return intervals[i].ent_flag_df; }, n);
-	put_result_double("ent_pn.txt", [](int i) { return intervals[i].ent_pktnum; }, n);
-	put_result_double("ent_bn.txt", [](int i) { return intervals[i].ent_bytenum; }, n);
-	put_result_double("ent_sp.txt", [](int i) { return intervals[i].ent_srcport; } , n);
-	put_result_double("ent_dp.txt", [](int i) { return intervals[i].ent_dstport; }, n);
-	put_result_double("ent_sip.txt", [](int i) { return intervals[i].ent_srcip; }, n);
-	put_result_double("ent_dip.txt", [](int i) { return intervals[i].ent_dstip; }, n);
-	put_result_double("ent_pktsize.txt", [](int i) { return intervals[i].ent_pkt_sizes; }, n);
-	put_result_int("tot_pn.txt", [](int i) { return intervals[i].tot_pktnum; }, n);
+	save_result_double("num_df.txt", [](int i) { return intervals[i].num_df / std::max(1, intervals[i].num_packets); }, n);
+	save_result_double("ent_df.txt", [](int i) { return intervals[i].ent_flag_df; }, n);
+	save_result_double("ent_pn.txt", [](int i) { return intervals[i].ent_pktnum; }, n);
+	save_result_double("ent_bn.txt", [](int i) { return intervals[i].ent_bytenum; }, n);
+	save_result_double("ent_sp.txt", [](int i) { return intervals[i].ent_srcport; } , n);
+	save_result_double("ent_dp.txt", [](int i) { return intervals[i].ent_dstport; }, n);
+	save_result_double("ent_sip.txt", [](int i) { return intervals[i].ent_srcip; }, n);
+	save_result_double("ent_dip.txt", [](int i) { return intervals[i].ent_dstip; }, n);
+	save_result_double("ent_pktsize.txt", [](int i) { return intervals[i].ent_pkt_sizes; }, n);
+	save_result_double("ent_stream.txt", [](int i) { return intervals[i].ent_stream; }, n);
+	save_result_int("tot_pn.txt", [](int i) { return intervals[i].tot_pktnum; }, n);
 	if(threshold > 0) {
-		put_result_int("dos_detection.txt", [](int i) { return intervals[i].dos_detection; }, n);
+		save_result_int("dos_detection.txt", [](int i) { return intervals[i].dos_detection; }, n);
 	}
-	put_result_int("tot_syn.txt", [](int i) { return intervals[i].tot_syn; }, n);
+	save_result_int("tot_syn.txt", [](int i) { return intervals[i].tot_syn; }, n);
 
 	printf("\ntotal bytes: %ld\n", t_total_bytes);
 	printf("total packets: %ld\n", t_total_packets);
@@ -578,6 +609,21 @@ int parse_pcap(std::string filename) {
 			interval.num_dst_ips[dst_addr]++;
 		}
 		
+		
+		// trace
+		uint64_t h = calc_hash(src_addr, src_port, dst_addr, dst_port, 0);
+		bool found = false;
+		for(auto& tr : interval.stream_traces) {
+			if(tr.first == h) {
+				tr.second += pkt_size;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			interval.stream_traces.emplace_back(h, pkt_size);
+		}
+		
 		t_total_packets++;
 	}
 	printf("finished reading %d packets\n", t_total_packets);
@@ -609,7 +655,7 @@ int parse_ns2(std::string filename) {
 		printf("File not found!\n");
 		return -0;
 	}
-
+// #define USE_NAM_TRACE
 #if defined(USE_NAM_TRACE)
 	while (fgets(line, 100, f) != NULL) {
 		if (line[0] == '+')

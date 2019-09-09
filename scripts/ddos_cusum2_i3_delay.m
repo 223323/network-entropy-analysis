@@ -1,4 +1,4 @@
-function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times)
+function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 	graphics_toolkit gnuplot
 	
 	entropy = csvread(entropy_file);
@@ -30,7 +30,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times)
 	for th1 = thmin:thinc:thmax % iterate threshold range
 		disp(['th ' num2str(th1)]);
 		
-		[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1);
+		[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1, sgn);
 		% cusums = [cusums entropy_detection];
 		% how much sp true positives
 		entropy_tp_count = 0;
@@ -129,7 +129,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times)
 	for th1 = thmin:thinc:thmax
 		% th2 = th2 + 1;
 		disp(['th ' num2str(th1)]);
-		[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1);
+		[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1, sgn);
 		% entropy_detection = cusums(th2, :);
 
 		a = floor(attack_start_times(sampleAttack) * subintervals);
@@ -166,7 +166,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times)
 	plot(thplot, mdelay, 'c-', 'linewidth', 2);
 
 	title('CUSUM (SYN packets)');
-	legend('True positive rate', 'False positive rate', 'Delay', 'Location', 'NorthWest');
+	legend('True positive rate', 'False positive rate', 'Average Delay', 'Location', 'NorthWest');
 	xlabel('Threshold');
 	ylabel('Detection rate');
 	axis([thmin thmax, 0 2]);
@@ -178,23 +178,16 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times)
 	% -----------------
 	f3 = figure(3, 'visible', false);
 	plot(thplot, mdelay, 'b-');
-	title('average detection delay');
+	hold on
+	plot(thplot, sdelay, 'c-');
+	legend('Average Delay', 'Sample Delay', 'Location', 'NorthWest');
+	title('detection delay');
 	xlabel('threshold');
 	ylabel('delay');
 	axis([thmin thmax 0 8]);
 	grid on;
-	print(f3, 'data/adelay', '-djpg');
+	print(f3, 'data/delay', '-djpg');
 
-	% threshold, sample attack
-	% ----------------
-	f4 = figure(4, 'visible', false);
-	plot(thplot, sdelay, 'b-');
-	title('sample detection delay');
-	xlabel('threshold');
-	ylabel('delay');
-	axis([thmin thmax 0 8]);
-	grid on;
-	print(f4, 'data/sdelay', '-djpg');
 
 	# write csv-s
 	csvwrite('data/tpplot.txt', tpplot);

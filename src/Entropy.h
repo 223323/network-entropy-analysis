@@ -3,13 +3,25 @@
 
 class Entropy {
 	public:
-		Entropy();
+		Entropy(double q);
 		virtual void Add(double p);
 		void SetCount(int count);
+		void SetQ(double q);
 		virtual double GetValue(bool normalized=true);
+		virtual Entropy* New();
 	protected:
 		double m_value;
 		int m_count;
+		double m_q;
+};
+
+class ShannonEntropy : public Entropy {
+	public:
+		ShannonEntropy(double q);
+		void Add(double p);
+		double GetValue(bool normalized=true);
+		virtual Entropy* New();
+	private:
 };
 
 class TsalisEntropy : public Entropy {
@@ -17,8 +29,8 @@ class TsalisEntropy : public Entropy {
 		TsalisEntropy(double q);
 		void Add(double p);
 		double GetValue(bool normalized=true);
+		virtual Entropy* New();
 	private:
-		double m_q;
 };
 
 class RenyiEntropy : public Entropy {
@@ -26,8 +38,8 @@ class RenyiEntropy : public Entropy {
 		RenyiEntropy(double q);
 		void Add(double p);
 		double GetValue(bool normalized=true);
+		virtual Entropy* New();
 	private:
-		double m_q;
 };
 
 #endif

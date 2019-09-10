@@ -33,9 +33,45 @@ class TsalisEntropy : public Entropy {
 	private:
 };
 
+class Tsalis2Entropy : public Entropy {
+	public:
+		Tsalis2Entropy(double q);
+		void Add(double p);
+		double GetValue(bool normalized=true);
+		virtual Entropy* New();
+	private:
+};
+
 class RenyiEntropy : public Entropy {
 	public:
 		RenyiEntropy(double q);
+		void Add(double p);
+		double GetValue(bool normalized=true);
+		virtual Entropy* New();
+	private:
+};
+
+class Renyi2Entropy : public Entropy {
+	public:
+		Renyi2Entropy(double q);
+		void Add(double p);
+		double GetValue(bool normalized=true);
+		virtual Entropy* New();
+	private:
+};
+
+class UbriacoEntropy : public Entropy {
+	public:
+		UbriacoEntropy(double q);
+		void Add(double p);
+		double GetValue(bool normalized=true);
+		virtual Entropy* New();
+	private:
+};
+
+class BhatiaSinghEntropy : public Entropy {
+	public:
+		BhatiaSinghEntropy(double q);
 		void Add(double p);
 		double GetValue(bool normalized=true);
 		virtual Entropy* New();

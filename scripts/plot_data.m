@@ -6,7 +6,7 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 	% end_interval = length(data);
 	% data2 = dlmread('dos_detection.txt');
 	
-	b = max(max(data))+5;
+	b = max(max(data));
 	a = 0;
 	
 	% start interval is at least 0.1sec

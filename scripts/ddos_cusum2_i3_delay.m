@@ -22,6 +22,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 	mdelay = []; % mean delay
 	sdelay = []; % sample delay
 
+	% thmin = 5.0;
 	thmin = 0.0;
 	thmax = 35.0;
 	thinc = 1.5;
@@ -119,13 +120,11 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 		% mean delays
 		mdelay = [mdelay mean_delay];
 
-		disp(['tp,fp: ' num2str(entropy_tp_count) ', ' num2str(entropy_fp_count)]);
+		disp(['tp,fp: ' num2str(entropy_tp_count) ', ' num2str(entropy_fp_count) ', ' num2str(numAttacks)]);
 	end
 
-	thmin = 0.0;
-	thmax = 35.0;
-
 	% th2 = 1;
+	% process sample
 	for th1 = thmin:thinc:thmax
 		% th2 = th2 + 1;
 		disp(['th ' num2str(th1)]);

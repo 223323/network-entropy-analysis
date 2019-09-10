@@ -144,8 +144,16 @@ int main(int argc, char* argv[]) {
 			threshold_min = atoi(argv[++i]);
 		} else if(arg == "--renyi") {
 			entropy_factory = new RenyiEntropy(0);
+		} else if(arg == "--renyi2") {
+			entropy_factory = new Renyi2Entropy(0);
 		} else if(arg == "--tsalis") {
 			entropy_factory = new TsalisEntropy(0);
+		} else if(arg == "--tsalis2") {
+			entropy_factory = new Tsalis2Entropy(0);
+		} else if(arg == "--bhatiasingh") {
+			entropy_factory = new BhatiaSinghEntropy(0);
+		} else if(arg == "--ubriaco") {
+			entropy_factory = new UbriacoEntropy(0);
 		} else if(arg == "--byte-entropy") {
 			use_byte_entropy = true;
 		} else if(arg == "--num-ports") {

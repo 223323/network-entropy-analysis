@@ -30,11 +30,8 @@ ShannonEntropy::ShannonEntropy(double Q) : Entropy(Q) {
 }
 
 void ShannonEntropy::Add(double p) {
-	if(p == 0) {
-		m_value = 0;
-	} else {
-		m_value += p * (-log2(p));
-	}
+	if(p == 0) return;
+	m_value += p * (-log2(p));
 	m_count++;
 }
 
@@ -65,8 +62,9 @@ void TsalisEntropy::Add(double p) {
 		
 double TsalisEntropy::GetValue(bool normalized) {
 	if(normalized) {
-		double denom = 1 - pow(m_count, 1-m_q);
-		return std::abs(1 - m_value) * (denom > 0 ? (100.0 / denom) : 0);
+		// double denom = 1 - pow(m_count, 1-m_q);
+		// return std::abs(1 - m_value) * (denom > 0 ? (100.0 / denom) : 0);
+		return (1 - m_value) / (m_q - 1);
 	} else {
 		return m_value;
 	}
@@ -74,6 +72,30 @@ double TsalisEntropy::GetValue(bool normalized) {
 
 Entropy* TsalisEntropy::New() {
 	return new TsalisEntropy(m_q);
+}
+
+// Tsalis2
+// ----------------------------------------
+Tsalis2Entropy::Tsalis2Entropy(double q) : Entropy(q) {
+}
+
+void Tsalis2Entropy::Add(double p) {
+	m_value += pow(p, m_q);
+	m_count++;
+}
+		
+double Tsalis2Entropy::GetValue(bool normalized) {
+	if(normalized) {
+		// double denom = 1 - pow(m_count, 1-m_q);
+		// return std::abs(1 - m_value) * (denom > 0 ? (100.0 / denom) : 0);
+		return (1 - m_value) / (m_q - 1);
+	} else {
+		return m_value;
+	}
+}
+
+Entropy* Tsalis2Entropy::New() {
+	return new Tsalis2Entropy(m_q);
 }
 
 // Renyi entropy
@@ -87,14 +109,65 @@ void RenyiEntropy::Add(double p) {
 }
 
 double RenyiEntropy::GetValue(bool normalized) {
-	if(normalized) {
-		if (m_value == 0) return 0;
-		double denom = log(pow(m_count, (1 - m_q)));
-		return std::abs( log(m_value) * (denom > 0 ? (100.0 / denom) : 100.0) );
-	} else {
-		return m_value;
-	}
+	if (m_value == 0) return 0;
+	// return log(m_value) / (1-m_q);
+	double denom = log(pow(m_count, (1 - m_q)));
+	return std::abs( log(m_value) * (denom > 0 ? (100.0 / denom) : 100.0) );
 }
+
 Entropy* RenyiEntropy::New() {
 	return new RenyiEntropy(m_q);
+}
+
+// Renyi2 entropy
+// ----------------------------------------
+Renyi2Entropy::Renyi2Entropy(double Q) : Entropy(Q) {
+}
+
+void Renyi2Entropy::Add(double p) {
+	m_value += pow(p, m_q);
+	m_count++;
+}
+
+double Renyi2Entropy::GetValue(bool normalized) {
+	if (m_value == 0) return 0;
+	return log(m_value) / (1-m_q);
+}
+
+Entropy* Renyi2Entropy::New() {
+	return new Renyi2Entropy(m_q);
+}
+
+// Ubriaco entropy
+// ----------------------------------------
+UbriacoEntropy::UbriacoEntropy(double Q) : Entropy(Q) {
+}
+
+void UbriacoEntropy::Add(double p) {
+	m_value += pow(-log(p), m_q) * p;
+	m_count++;
+}
+
+double UbriacoEntropy::GetValue(bool normalized) {
+	return m_value;
+}
+Entropy* UbriacoEntropy::New() {
+	return new UbriacoEntropy(m_q);
+}
+
+// BhatiaSingh entropy
+// ----------------------------------------
+BhatiaSinghEntropy::BhatiaSinghEntropy(double Q) : Entropy(Q) {
+}
+
+void BhatiaSinghEntropy::Add(double p) {
+	m_value += p * sinh(m_q * log(p));
+	m_count++;
+}
+
+double BhatiaSinghEntropy::GetValue(bool normalized) {
+	return - m_value / sinh(m_q);
+}
+Entropy* BhatiaSinghEntropy::New() {
+	return new BhatiaSinghEntropy(m_q);
 }

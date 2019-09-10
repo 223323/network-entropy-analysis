@@ -4,6 +4,7 @@ import shutil
 import datetime
 
 files = [
+	# filename, length[s]
 	('lan-big-1', 500),
 	# ('lan-big-2', 500),
 	# ('lan-big-3', 500),
@@ -11,6 +12,14 @@ files = [
 ]
 
 pcap_dir = 'pcap/'
+
+entropies = [
+	# entropy, Q-range
+	('ubriaco', (0,1,0.1)),
+	('bhatiasingh', (0.5,15,0.1)),
+	('tsalis', (-2,2,0.1)),
+	('renyi', (-2,2,0.1)),
+]
 
 def frange(x, y, jump):
   while x <= y:
@@ -21,13 +30,12 @@ for ff in files:
 	f, end_time = ff
 	pcap_file = os.path.join(pcap_dir, f+'.cap')
 	attack_times_file = os.path.join(pcap_dir, f+'.csv')
-	for entropy in ['renyi', 'tsalis']:
+	for ent in entropies:
+		entropy, ent_range = ent
 	# for entropy in ['tsalis']:
-		for q in frange(-2,2,0.1):
+		for q in frange(*ent_range):
 			if q == 0.0: continue
-			
-			if entropy == 'tsalis' and q <= 0.0: continue
-			
+						
 			if os.path.exists('output'):
 				shutil.rmtree('output')
 			
@@ -72,7 +80,7 @@ for ff in files:
 			
 			# do cusum
 			if True:
-				for cus in ['ent_sp','ent_stream']:
+				for cus in ['ent_sp','ent_fsd']:
 					os.mkdir(os.path.join('output','data'))
 					
 					# cusum

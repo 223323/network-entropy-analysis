@@ -149,7 +149,7 @@ void UbriacoEntropy::Add(double p) {
 }
 
 double UbriacoEntropy::GetValue(bool normalized) {
-	return m_value;
+	return m_value * 100 / pow(log((double)m_count), m_q);
 }
 Entropy* UbriacoEntropy::New() {
 	return new UbriacoEntropy(m_q);
@@ -161,12 +161,15 @@ BhatiaSinghEntropy::BhatiaSinghEntropy(double Q) : Entropy(Q) {
 }
 
 void BhatiaSinghEntropy::Add(double p) {
-	m_value += p * sinh(m_q * log(p));
+	// m_value += p * sinh(m_q * log(p));
+	m_value += p*sinh(m_q*log(p)/log(2));
 	m_count++;
 }
 
 double BhatiaSinghEntropy::GetValue(bool normalized) {
-	return - m_value / sinh(m_q);
+	// return - m_value / sinh(m_q);
+	return m_value / sinh((-1)*m_q*log((double)m_count));
+	// return m_value;
 }
 Entropy* BhatiaSinghEntropy::New() {
 	return new BhatiaSinghEntropy(m_q);

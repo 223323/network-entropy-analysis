@@ -15,10 +15,12 @@ pcap_dir = 'pcap/'
 
 entropies = [
 	# entropy, Q-range
-	('ubriaco', (0,1,0.1)),
-	('bhatiasingh', (0.5,15,0.1)),
-	('tsalis', (-2,2,0.1)),
-	('renyi', (-2,2,0.1)),
+	# ('bhatiasingh', (0.5,15,0.1)),
+	('bhatiasingh', (3.3,15,0.1)),
+	# ('bhatiasingh', (5,15,0.1)),
+	# ('ubriaco', (0,1,0.1)),
+	# ('tsalis', (-2,2,0.1)),
+	# ('renyi', (-2,2,0.1)),
 ]
 
 def frange(x, y, jump):
@@ -90,7 +92,7 @@ for ff in files:
 						'subintervals': 10,
 						'attack_times': os.path.join('..',attack_times_file),
 						# 'sgn': 0 if cus == 'ent_stream' else 1
-						'sgn': 0
+						'sgn': 1
 					}
 					cmdline = ['octave-cli',
 						'--path', '../scripts',

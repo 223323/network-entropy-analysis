@@ -23,6 +23,7 @@
 #include <algorithm>
 
 #include <list>
+#include <set>
 
 #define Q entropy_arg
 
@@ -42,6 +43,7 @@ int num_subintervals = NUM_SUBINTERVALS; // intervals per second
 int max_time = MAX_TIME;
 int num_ports = NUM_PORTS;
 double window_size_seconds = 1.0;
+int g_total_packets = 0;
 
 struct Interval {
 	int num_packets;
@@ -154,6 +156,8 @@ int main(int argc, char* argv[]) {
 			entropy_factory = new BhatiaSinghEntropy(0);
 		} else if(arg == "--ubriaco") {
 			entropy_factory = new UbriacoEntropy(0);
+		} else if(arg == "--ubriaco") {
+			entropy_factory = new ShannonEntropy(0);
 		} else if(arg == "--byte-entropy") {
 			use_byte_entropy = true;
 		} else if(arg == "--num-ports") {
@@ -217,8 +221,10 @@ struct Window {
 	int value;
 };
 std::list<std::pair<uint64_t, Window>> recent_fsd;
+std::set<uint64_t> all_fsd;
 void fsd_update(int i) {
 	for(auto& s : intervals[i].fsd_traces) {
+		
 		bool found=false;
 		for(auto r = recent_fsd.begin(); r != recent_fsd.end(); ) {
 			if(r->first == s.first) {
@@ -310,6 +316,7 @@ void process_entropy() {
 		for(auto &s : recent_fsd) {
 			fsd_entropy->Add( s.second.value / fsd_total );
 		}
+		
 
 		for (i=0; i < num_ports; i++) {
 			int k, srcp=0, dstp=0;
@@ -339,10 +346,12 @@ void process_entropy() {
 		}
 		
 		srcport_entropy->SetCount(UINT16_MAX);
-		dstport_entropy->SetCount(UINT16_MAX);
 		srcip_entropy->SetCount(UINT16_MAX);
+		dstport_entropy->SetCount(UINT16_MAX);
 		dstip_entropy->SetCount(UINT16_MAX);
 		packet_sizes_entropy->SetCount(NUM_ENTROPY_PACKET_SIZES);
+		flag_df_entropy->SetCount(g_total_packets);
+		fsd_entropy->SetCount(all_fsd.size());
 
 		intervals[j].ent_srcport = srcport_entropy->GetValue();
 		intervals[j].ent_dstport = dstport_entropy->GetValue();
@@ -528,7 +537,9 @@ int parse_pcap(std::string filename) {
 		if(sec >= max_time) {
 			return 0;
 		}
-
+		
+		g_total_packets++;
+		
 		const int i = num_intervals * time / (double)max_time;
 		// const int i = sec*num_subintervals+sub_int;
 		auto& interval = intervals[i];
@@ -624,6 +635,7 @@ int parse_pcap(std::string filename) {
 		if (!found) {
 			interval.fsd_traces.emplace_back(h, pkt_size);
 		}
+		all_fsd.insert(h);
 		
 		t_total_packets++;
 	}

@@ -361,14 +361,6 @@ void process_entropy() {
 
 		intervals[j].ent_flag_df = flag_df_entropy->GetValue();
 		intervals[j].ent_fsd = fsd_entropy->GetValue();
-		
-		if(threshold > 0) {
-			if(intervals[j].ent_dstport < threshold) {
-				intervals[j].dos_detection = intervals[j].ent_dstport;
-			} else {
-				intervals[j].dos_detection = threshold_min;
-			}
-		}
 
 		if(verbose) {
 			printf("%3d, pn=%4d, S(pn)=%0.2lf%%, S(bn)=%0.2lf%%, S(sp)=%0.2lf%%, S(dp)=%0.2lf%% S(sip)=%0.2lf%%, S(dip)=%0.2lf%%\n",
@@ -449,9 +441,6 @@ void print_result() {
 	save_result_double("ent_pktsize.txt", [](int i) { return intervals[i].ent_pkt_sizes; }, n);
 	save_result_double("ent_fsd.txt", [](int i) { return intervals[i].ent_fsd; }, n);
 	save_result_int("tot_pn.txt", [](int i) { return intervals[i].tot_pktnum; }, n);
-	if(threshold > 0) {
-		save_result_int("dos_detection.txt", [](int i) { return intervals[i].dos_detection; }, n);
-	}
 	save_result_int("tot_syn.txt", [](int i) { return intervals[i].tot_syn; }, n);
 
 	printf("\ntotal bytes: %ld\n", t_total_bytes);
@@ -501,16 +490,9 @@ int parse_pcap(std::string filename) {
 		
 		int pkt_type = pcap_datalink(p);
 		if(pkt_type == DLT_LINUX_SLL) {
-			// printf("sll hdr: %d\n", sizeof(sll_header));
 			sll_header* sll = (sll_header*)pkt_data;
-			// printf("pkt size: %d\n", pkt_size);
-			// printf("size of IP: %d\n", sizeof(ip_header));
 			ip = (ip_header*)(pkt_data+sizeof(sll_header));
-			// tcp = (tcp_header*)(((char*)ip)+20);
 			tcp = (tcp_header*)(ip+1);
-			// printf("port: %04x %04x\n", ntohs(tcp->sport), ntohs(tcp->dport));
-			// printf("COOKED PROTO %x\n", ip->proto);
-			// exit(0);
 			if(sll->proto == PROTO_L3_IPv4) {
 				if(ip->proto != PROTO_L4_TCP) {
 					continue;

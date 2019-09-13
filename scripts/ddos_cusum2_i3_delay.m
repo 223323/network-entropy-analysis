@@ -8,10 +8,10 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 	t = (0:(n-1))/subintervals;
 	maxt = n/subintervals;
 
-	attack_start_times = attack_start_times(1,:)
+	attack_start_times = attack_start_times(1,:);
 	
 	numAttacks = size(attack_start_times)(2);
-	disp(['numAttacks: ' num2str(numAttacks)])
+	
 	sampleAttack = 1;
 
 	true_positive_ratio = 0.5;
@@ -30,8 +30,13 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 	
 	[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, 1, 1); % speedup
 	
+	progress = false;
+	
+	disp(['numAttacks: ' num2str(numAttacks)]);
 	for th1 = thmin:thinc:thmax % iterate threshold range
-		disp(['th ' num2str(th1)]);
+		if progress
+			disp(['th ' num2str(th1)]);
+		end
 		
 		% [entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1, sgn);
 		entropy_detection = (entropy_filt > th1*entropy_filt2) * 100; % speedup
@@ -150,12 +155,16 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 		% mean delays
 		mdelay = [mdelay mean_delay];
 
-		disp(['tp,fp: ' num2str(entropy_tp_count) ', ' num2str(entropy_fp_count) ', ' num2str(numAttacks)]);
+		if progress
+			disp(['tp,fp: ' num2str(entropy_tp_count) ', ' num2str(entropy_fp_count) ', ' num2str(numAttacks)]);
+		end
 	end
 
 	% process sample
 	for th1 = thmin:thinc:thmax
-		disp(['th ' num2str(th1)]);
+		if progress
+			disp(['th ' num2str(th1)]);
+		end
 		% [entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1, sgn);
 		entropy_detection = (entropy_filt > th1*entropy_filt2) * 100; % speedup
 
@@ -221,10 +230,10 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 
 
 	# write csv-s
-	csvwrite('data/tpplot.txt', tpplot);
-	csvwrite('data/fpplot.txt', fpplot);
-	csvwrite('data/mdelay.txt', mdelay);
-	csvwrite('data/sdelay.txt', sdelay);
+	% csvwrite('data/tpplot.txt', tpplot);
+	% csvwrite('data/fpplot.txt', fpplot);
+	% csvwrite('data/mdelay.txt', mdelay);
+	% csvwrite('data/sdelay.txt', sdelay);
 
 
 end

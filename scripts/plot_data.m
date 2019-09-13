@@ -6,13 +6,14 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 	% end_interval = length(data);
 	% data2 = dlmread('dos_detection.txt');
 	
+	data(data == Inf) = 0;
 	b = max(max(data));
 	a = 0;
 	
 	% start interval is at least 0.1sec
-	start_interval = max(1, floor(start_time*subintervals))
+	start_interval = max(1, floor(start_time*subintervals));
 	end_interval = end_time*subintervals;
-	span_interval = end_interval-start_interval+1
+	span_interval = end_interval-start_interval+1;
 	t = linspace(start_interval/subintervals, end_interval/subintervals, span_interval);
 	h = figure('visible', false);
 	% h = figure('visible', true);
@@ -49,23 +50,23 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 			plot(t, d2, '-');
 		end
 	end
-	% pwd()
-	atk_time_filename = attack_times
+	
+	atk_time_filename = attack_times;
 	% attack_times
 	if exist(atk_time_filename, 'file')
 		t2=csvread(atk_time_filename);
 		% disp(['attack times opened'])
-		% t2
+		
 		n=length(t2);
 		l=prod(size(t2));
 		d=reshape( repmat( reshape(t2, 1, l), 2, 1), 1, l*2 );
 		d = d - 0.5;
 		
 		plot_data = repmat([0,b,b,0], 1, n);
-		ll2 = size(d);
-		ll3 = size(plot_data);
-		
-		plot(d, plot_data);
+		% ll2 = size(d)
+		% ll3 = size(plot_data)
+		% d,plot_data
+		plot(d, plot_data, 'r-');
 	end
 	
 	subintervals

@@ -1,4 +1,4 @@
-function [detection, d, h] = detect_cusum(samples, M, sgn=1)
+function [detection, d, h] = detect_cusum(samples, M, sgn=1, adp_k=false)
 
 	% detection
 	%	100 - detected
@@ -15,6 +15,10 @@ function [detection, d, h] = detect_cusum(samples, M, sgn=1)
 	alfa2 = 0.05;
 	K = 0.3;
 
+	if adp_k
+		K = (max(samples) + min(samples)) / 20
+	end
+	
 	n = length(samples);
 
 	d          = zeros(1, n);
@@ -36,7 +40,7 @@ function [detection, d, h] = detect_cusum(samples, M, sgn=1)
 		s = interpolate(alfa2, (sample - mi_a)^2, s);
 		h(j) = M*sqrt(s);
 	
-		if (sgn != 0 && sgn*d(j) > h(j)) || (sgn == 0 && abs(d(j)) > h(j))
+		if d(j) > h(j)
 			detection(j) = 100;
 		end
 	end

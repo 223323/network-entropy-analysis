@@ -400,10 +400,10 @@ void save_result_double(const char* filename, std::function<double(int)> r, int 
 	strcpy(file, OUTPUT);
 	strcat(file, filename);
 	FILE* f = fopen(file, "wt");
-	fprintf(f, "%0.2lf", r(0));
+	fprintf(f, "%0.6lf", r(0));
 	int i;
 	for (i=1; i < num; i++) {
-		fprintf(f, ",%0.2lf", r(i));
+		fprintf(f, ",%0.6lf", r(i));
 	}
 	fprintf(f, "\n");
 	fclose(f);

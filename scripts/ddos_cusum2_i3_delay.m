@@ -1,6 +1,6 @@
-function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
+function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1, adp=false)
 	
-	
+	graphics_toolkit gnuplot
 	entropy = csvread(entropy_file);
 	attack_start_times = csvread(attack_times);
 
@@ -28,7 +28,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 	thmax = 35.0;
 	thinc = 1.0;
 	
-	[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, 1, 1); % speedup
+	[entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, 1, 1, adp); % speedup
 	
 	progress = false;
 	
@@ -41,7 +41,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 		% [entropy_detection, entropy_filt, entropy_filt2] = detect_cusum(entropy, th1, sgn);
 		entropy_detection = (entropy_filt > th1*entropy_filt2) * 100; % speedup
 		
-		
+		% ent_det = max(entropy_detection);
 		######### DEBUG ############
 		if false
 			hold off
@@ -91,7 +91,8 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1)
 				b = n;
 			end
 			
-			b1 = a + floor(true_positive_ratio*(b-a)); % (a |=======|--- b)
+			b = min(n, b);
+			b1 = min(n, a + floor(true_positive_ratio*(b-a))); % (a |=======|--- b)
 			
 			% disp(['interval: ' num2str(a) ' ' num2str(b)])
 			

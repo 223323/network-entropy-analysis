@@ -7,6 +7,10 @@ files = [
 	# filename, length[s]
 	# ('lan-big-1', 500),
 	('lan-big-4', 500),
+	
+	# ('lan-big-5-nf', 500),
+	# ('lan-big-5-rf', 500),
+	
 	# ('lan-big-2', 500),
 	# ('lan-big-3', 500),
 	# ('lan-big-4', 500),
@@ -20,11 +24,12 @@ entropies = [
 	# ('bhatiasingh', (3.3,15,0.1)),
 	# ('bhatiasingh', (5,15,0.1)),
 	# ('ubriaco', (0,1,0.1)),
+	('tsalis', (-2,2,0.1)),
 	# ('tsalis2', (-2,2,0.1)),
 	# ('renyi', (-2,2,0.1)),
 	# ('renyi2', (0,2,0.1)),
 	# ('renyi', (0,2,0.1)),
-	{'shannon', (0,0,1)}
+	# ('shannon', (0,0,1))
 ]
 
 cusums = [
@@ -37,7 +42,7 @@ cusums = [
 
 subprocess.Popen(['make']).wait()
 
-def frange(x, y, jump):
+def frange(x, y, jump, *args):
   while x <= y:
     yield x
     x += jump
@@ -101,11 +106,12 @@ for ff in files:
 					'subintervals': 10,
 					'attack_times': os.path.join('..',attack_times_file),
 					# 'sgn': 0 if cus == 'ent_stream' else 1
-					'sgn': 1
+					'sgn': '1',
+					'adp': 'true' if entropy.startswith('tsalis') else 'false'
 				}
 				cmdline = ['octave-cli',
 					'--path', '../scripts',
-					'--eval', 'ddos_cusum2_i3_delay("{entropy_file}", {subintervals}, "{attack_times}", {sgn})'.format(**oct_args),
+					'--eval', 'ddos_cusum2_i3_delay("{entropy_file}", {subintervals}, "{attack_times}", {sgn}, {adp})'.format(**oct_args),
 				]
 				
 				print('running: ', ' '.join(cmdline))

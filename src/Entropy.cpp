@@ -52,11 +52,11 @@ void TsalisEntropy::Add(double p) {
 	m_value += pow(p, m_q);
 	m_count++;
 }
-		
+
 double TsalisEntropy::GetValue(bool normalized) {
 	if(normalized) {
 		double denom = 1 - pow(m_count, 1-m_q);
-		return std::abs(1 - m_value) * (denom > 0 ? (100.0 / denom) : 0);
+		return (1 - m_value) * (denom != 0 ? (100.0 / denom) : 0);
 	} else {
 		return m_value;
 	}
@@ -101,7 +101,7 @@ void RenyiEntropy::Add(double p) {
 double RenyiEntropy::GetValue(bool normalized) {
 	if (m_value == 0) return 0;
 	double denom = log(pow(m_count, (1 - m_q)));
-	return std::abs( log(m_value) * (denom > 0 ? (100.0 / denom) : 100.0) );
+	return std::abs( log(m_value) * (denom != 0 ? (100.0 / denom) : 0) );
 	
 }
 

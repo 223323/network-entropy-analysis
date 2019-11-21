@@ -3,8 +3,9 @@ function plot_all(start_attack_time, end_time, subintervals, attack_times)
 	for i = 1:numel(filelist)
 	  file = filelist{i};
 	  [d,n,e] = fileparts(file);
-	  skiplist = { 'cmd.txt', 'dos_detection.txt' };
-	  if regexp (filelist{i}, "^\\.\\.?$") || strcmp(skiplist, filelist{i}) || !strcmp(e,'.txt') || strcmp('cmd.txt', filelist{i})
+	  skiplist = { '.', '..', 'cmd.txt', 'dos_detection.txt' };
+	  # NOTE: strcmp() == 1 if match, 0 if not match
+	  if any(strcmp(skiplist, filelist{i})) || !strcmp(e,'.txt')
 		disp(['skipping ' filelist{i}])
 		continue;
 	  end

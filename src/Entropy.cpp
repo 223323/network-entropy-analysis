@@ -9,7 +9,7 @@ void Entropy::Add(double p) {
 	
 }
 
-void Entropy::SetCount(int count) {
+void Entropy::SetCount(uint32_t count) {
 	m_count = count;
 }
 void Entropy::SetQ(double q) {
@@ -78,7 +78,8 @@ void Tsalis2Entropy::Add(double p) {
 
 double Tsalis2Entropy::GetValue(bool normalized) {
 	if(normalized) {
-		return std::abs( m_value * 100.0 / (1-pow(m_count, 1-m_q)) );
+		double denom = 1-pow(m_count, 1-m_q);
+		return std::abs( m_value * (denom != 0 ? (100.0 / denom) : 0) );
 	} else {
 		return m_value;
 	}
@@ -111,6 +112,7 @@ Entropy* RenyiEntropy::New() {
 
 // Renyi2 entropy
 // ----------------------------------------
+/*
 Renyi2Entropy::Renyi2Entropy(double Q) : Entropy(Q) {
 }
 
@@ -128,6 +130,7 @@ double Renyi2Entropy::GetValue(bool normalized) {
 Entropy* Renyi2Entropy::New() {
 	return new Renyi2Entropy(m_q);
 }
+*/
 
 // Ubriaco entropy
 // ----------------------------------------

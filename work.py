@@ -6,7 +6,9 @@ import datetime
 files = [
 	# filename, length[s]
 	# ('lan-big-1', 500),
-	('lan-big-4', 500),
+	# ('lan-big-4', 500),
+	# ('lan-big-10', 500),
+	# ('lan-big-7', 500),
 	
 	# ('lan-big-5-nf', 500),
 	# ('lan-big-5-rf', 500),
@@ -14,6 +16,14 @@ files = [
 	# ('lan-big-2', 500),
 	# ('lan-big-3', 500),
 	# ('lan-big-4', 500),
+	
+	
+	# ('lan-big-10-1_10', 500),
+	# ('lan-big-10-1_20', 500),
+	# ('lan-big-10-1', 500),
+	# ('lan-big-10-1_1', 500),
+	# ('lan-big-10-1_80', 500),
+	('lan-big-10-1_160', 500),
 ]
 
 pcap_dir = 'pcap/'
@@ -21,15 +31,19 @@ pcap_dir = 'pcap/'
 entropies = [
 	# entropy, Q-range
 	# ('bhatiasingh', (0.5,15,0.1)),
-	# ('bhatiasingh', (3.3,15,0.1)),
+	# ('bhatiasingh', (3.0,15,1.0)),
 	# ('bhatiasingh', (5,15,0.1)),
-	# ('ubriaco', (0,1,0.1)),
-	('tsalis', (-2,2,0.1)),
-	# ('tsalis2', (-2,2,0.1)),
+	# ('tsalis', (-2,2,0.1)),
+	# ('tsalis', (1,2,0.1)),
 	# ('renyi', (-2,2,0.1)),
 	# ('renyi2', (0,2,0.1)),
-	# ('renyi', (0,2,0.1)),
-	# ('shannon', (0,0,1))
+	
+	
+	('shannon', (0,0,1)),
+	('bhatiasingh', (3.3,15,0.1)),
+	('ubriaco', (0,1,0.1)),
+	('tsalis2', (-2,2,0.1)),
+	('renyi', (-2,2,0.1)),
 ]
 
 cusums = [
@@ -39,16 +53,23 @@ cusums = [
 	# 'ent_pn',
 ]
 
-
-subprocess.Popen(['make']).wait()
+r=subprocess.Popen(['make'])
+r.wait()
+if r.returncode != 0: exit(1)
 
 def frange(x, y, jump, *args):
   while x <= y:
     yield x
     x += jump
-    
+
+
 for ff in files:
 	f, end_time = ff
+	
+	today = datetime.datetime.today()
+	# date = today.strftime(' (%d.%m %H:%M:%S)')
+	date = ''
+	
 	pcap_file = os.path.join(pcap_dir, f+'.cap')
 	attack_times_file = os.path.join(pcap_dir, f+'.csv')
 	for ent in entropies:
@@ -107,7 +128,8 @@ for ff in files:
 					'attack_times': os.path.join('..',attack_times_file),
 					# 'sgn': 0 if cus == 'ent_stream' else 1
 					'sgn': '1',
-					'adp': 'true' if entropy.startswith('tsalis') else 'false'
+					# 'adp': 'true' if entropy.startswith('tsalis') else 'false'
+					'adp': 'true'
 				}
 				cmdline = ['octave-cli',
 					'--path', '../scripts',
@@ -124,6 +146,17 @@ for ff in files:
 			
 			
 			## Save
-			today = datetime.datetime.today()
-			outdir = today.strftime(f+' --'+entropy + ' -Q ' + ('%.2f' % q) + ' (%d.%m %H:%M:%S)')
-			shutil.move('output', os.path.join('outputs', outdir))
+			
+			# main_outdir / entropy_dir / outdir
+			outdir = f+' --'+entropy + ' -Q ' + ('%.2f' % q)
+			
+			main_outdir = os.path.join('outputs', f+date)
+			entropy_dir = os.path.join(main_outdir, entropy)
+			
+			if not os.path.exists(main_outdir):
+				os.mkdir(main_outdir)
+			if not os.path.exists(entropy_dir):
+				os.mkdir(entropy_dir)
+			
+			shutil.move('output', os.path.join(entropy_dir, outdir))
+			

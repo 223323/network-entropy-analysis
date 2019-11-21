@@ -1,17 +1,17 @@
 #ifndef ENTROPY_H
 #define ENTROPY_H
-
+#include <stdint.h>
 class Entropy {
 	public:
 		Entropy(double q);
 		virtual void Add(double p);
-		void SetCount(int count);
+		void SetCount(uint32_t count);
 		void SetQ(double q);
 		virtual double GetValue(bool normalized=true);
 		virtual Entropy* New();
 	protected:
 		double m_value;
-		int m_count;
+		uint32_t m_count;
 		double m_q;
 };
 
@@ -50,7 +50,7 @@ class RenyiEntropy : public Entropy {
 		virtual Entropy* New();
 	private:
 };
-
+/*
 class Renyi2Entropy : public Entropy {
 	public:
 		Renyi2Entropy(double q);
@@ -59,7 +59,7 @@ class Renyi2Entropy : public Entropy {
 		virtual Entropy* New();
 	private:
 };
-
+*/
 class UbriacoEntropy : public Entropy {
 	public:
 		UbriacoEntropy(double q);

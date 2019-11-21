@@ -147,7 +147,7 @@ int main(int argc, char* argv[]) {
 		} else if(arg == "--renyi") {
 			entropy_factory = new RenyiEntropy(0);
 		} else if(arg == "--renyi2") {
-			entropy_factory = new Renyi2Entropy(0);
+			// entropy_factory = new Renyi2Entropy(0);
 		} else if(arg == "--tsalis") {
 			entropy_factory = new TsalisEntropy(0);
 		} else if(arg == "--tsalis2") {
@@ -224,7 +224,6 @@ std::list<std::pair<uint64_t, Window>> recent_fsd;
 std::set<uint64_t> all_fsd;
 void fsd_update(int i) {
 	for(auto& s : intervals[i].fsd_traces) {
-		
 		bool found=false;
 		for(auto r = recent_fsd.begin(); r != recent_fsd.end(); ) {
 			if(r->first == s.first) {
@@ -265,6 +264,7 @@ void process_entropy() {
 	int total_bytes = 0;
 	int total_syn = 0;
 	int total_df = 0;
+	double fsd_total = 0;
 	
 	for(int i=0; i < num_subintervals; i++) {
 		total_packets += intervals[i].num_packets;
@@ -309,7 +309,6 @@ void process_entropy() {
 		intervals[j].tot_syn = total_syn;
 		
 		// fsd entropy
-		double fsd_total = 0;
 		for(auto &s : recent_fsd) {
 			fsd_total += s.second.value;
 		}
@@ -346,9 +345,9 @@ void process_entropy() {
 		}
 		
 		srcport_entropy->SetCount(UINT16_MAX);
-		srcip_entropy->SetCount(UINT16_MAX);
+		srcip_entropy->SetCount(UINT32_MAX);
 		dstport_entropy->SetCount(UINT16_MAX);
-		dstip_entropy->SetCount(UINT16_MAX);
+		dstip_entropy->SetCount(UINT32_MAX);
 		packet_sizes_entropy->SetCount(NUM_ENTROPY_PACKET_SIZES);
 		flag_df_entropy->SetCount(g_total_packets);
 		fsd_entropy->SetCount(all_fsd.size());

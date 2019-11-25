@@ -16,26 +16,18 @@
 #include "Entropy.h"
 #include <string>
 #include <memory>
-#include <vector>
+
 #include <functional>
 #include <iostream>
 #include <sstream>
 #include <algorithm>
 
-#include <list>
-#include <set>
+#include "process_entropy.h"
+#include "fsd.h"
 
-#define Q entropy_arg
 
-// default params
-#define NUM_SUBINTERVALS 10
-#define NUM_PORTS 1000
-#define NUM_ENTROPY_PACKET_SIZES 1500
-#define MAX_TIME 805 // in seconds
 
-#define OUTPUT "output/"
 
-#define NUM_SAMPLES MAX_TIME*NUM_SUBINTERVALS
 
 // ----- data for processing ------
 int num_intervals;
@@ -44,40 +36,6 @@ int max_time = MAX_TIME;
 int num_ports = NUM_PORTS;
 double window_size_seconds = 1.0;
 int g_total_packets = 0;
-
-struct Interval {
-	int num_packets;
-	int num_syn;
-	int num_bytes;
-	int num_df;
-	
-	std::vector<int> num_src_ports;
-	std::vector<int> num_dst_ports;
-	std::vector<int> num_src_ips;
-	std::vector<int> num_dst_ips;
-	std::vector<int> num_packet_sizes;
-	
-	// window
-	double ent_pktnum;
-	double ent_bytenum;
-	double ent_srcport;
-	double ent_dstport;
-	double ent_srcip;
-	double ent_dstip;
-	double ent_flag_df;
-	double ent_pkt_sizes;
-	double ent_fsd;
-	
-	int dos_detection;
-	int tot_pktnum;
-	int tot_syn;
-	
-	std::vector<std::pair<uint64_t, int>> fsd_traces;
-};
-
-uint64_t calc_hash(int sip, int sport, int dip, int dport, int proto) {
-	return ((((sip*33 + sport)*33 + dip)*33 + dport)*33 + proto);
-}
 
 std::vector<Interval> intervals;
 Entropy* entropy_factory = new ShannonEntropy(0);
@@ -215,46 +173,11 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-// fsd traces
-struct Window {
-	int last_seen;
-	int value;
-};
-std::list<std::pair<uint64_t, Window>> recent_fsd;
-std::set<uint64_t> all_fsd;
-void fsd_update(int i) {
-	for(auto& s : intervals[i].fsd_traces) {
-		bool found=false;
-		for(auto r = recent_fsd.begin(); r != recent_fsd.end(); ) {
-			if(r->first == s.first) {
-				found = true;
-				
-				int a = std::max(0,r->second.last_seen-num_subintervals);
-				int b = std::min(r->second.last_seen, i-num_subintervals);
-				for(int j = a; j < b; j++) {
-					for(auto& s1 : intervals[j].fsd_traces) {
-						if(s1.first == r->first) {
-							r->second.value -= s1.second;
-							break;
-						}
-					}
-				}
-				r->second.last_seen = i;
-				r->second.value += s.second;
-				break;
-			} else {
-				if(r->second.last_seen+num_subintervals < i) {
-					r = recent_fsd.erase(r);
-				} else {
-					++r;
-				}
-			}
-		}
-		if(!found) {
-			recent_fsd.push_back( {s.first, {.last_seen=i, .value=s.second}} );
-		}
-	}
-}
+
+
+
+// -----------------------------------
+
 
 void process_entropy() {
 	int i, j;
@@ -264,7 +187,7 @@ void process_entropy() {
 	int total_bytes = 0;
 	int total_syn = 0;
 	int total_df = 0;
-	double fsd_total = 0;
+	
 	
 	for(int i=0; i < num_subintervals; i++) {
 		total_packets += intervals[i].num_packets;
@@ -281,8 +204,9 @@ void process_entropy() {
 	// calculate entropy for each window
 	for (j=0; j < num_intervals - num_subintervals; j++) {
 		const int j1 = j + num_subintervals;
-		if(verbose)
+		if(verbose) {
 			std::cout << "processing " << j << " / " << num_intervals << "\n";
+		}
 		entropy_factory->SetQ(Q);
 		std::unique_ptr<Entropy> flag_df_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> pktnum_entropy(entropy_factory->New());
@@ -309,6 +233,7 @@ void process_entropy() {
 		intervals[j].tot_syn = total_syn;
 		
 		// fsd entropy
+		double fsd_total = 0;
 		for(auto &s : recent_fsd) {
 			fsd_total += s.second.value;
 		}
@@ -604,6 +529,7 @@ int parse_pcap(std::string filename) {
 		}
 		
 		// fsd
+		/*
 		uint64_t h = calc_hash(src_addr, src_port, dst_addr, dst_port, 0);
 		bool found = false;
 		for(auto& tr : interval.fsd_traces) {
@@ -617,6 +543,8 @@ int parse_pcap(std::string filename) {
 			interval.fsd_traces.emplace_back(h, pkt_size);
 		}
 		all_fsd.insert(h);
+		*/
+		fsd_insert(src_addr, src_port, dst_addr, dst_port, 0, pkt_size, i);
 		
 		t_total_packets++;
 	}

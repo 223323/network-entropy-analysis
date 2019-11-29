@@ -39,6 +39,7 @@ int g_total_packets = 0;
 
 std::vector<Interval> intervals;
 Entropy* entropy_factory = new ShannonEntropy(0);
+Fsd* fsd = new MyFsd();
 
 // -----------------
 
@@ -93,7 +94,7 @@ int main(int argc, char* argv[]) {
 		printf("%s <pcap/ns2 file>\n", argv[0]);
 		return -1;
 	}
-	
+	fsd = new MyFsd();
 	std::string filename = "nopcap";
 	for(int i=1; i < argc; i++) {
 		std::string arg = std::string(argv[i]);
@@ -195,10 +196,8 @@ void process_entropy() {
 		total_df += intervals[i].num_df;
 		total_bytes += intervals[i].num_bytes;
 		
-		// fsd entropy
-		fsd_update(i);
 	}
-
+	fsd->fsd_prepare();
 	t_total_bytes = total_bytes;
 
 	// calculate entropy for each window
@@ -207,6 +206,8 @@ void process_entropy() {
 		if(verbose) {
 			std::cout << "processing " << j << " / " << num_intervals << "\n";
 		}
+		
+		// entropy for each window
 		entropy_factory->SetQ(Q);
 		std::unique_ptr<Entropy> flag_df_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> pktnum_entropy(entropy_factory->New());
@@ -216,8 +217,6 @@ void process_entropy() {
 		std::unique_ptr<Entropy> srcip_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> dstip_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> packet_sizes_entropy(entropy_factory->New());
-		std::unique_ptr<Entropy> fsd_entropy(entropy_factory->New());
-		
 
 		for (i=0; i < num_subintervals; i++) {
 			if (intervals[j+i].num_packets != 0) {
@@ -232,16 +231,6 @@ void process_entropy() {
 		intervals[j].tot_pktnum = total_packets;
 		intervals[j].tot_syn = total_syn;
 		
-		// fsd entropy
-		double fsd_total = 0;
-		for(auto &s : recent_fsd) {
-			fsd_total += s.second.value;
-		}
-		for(auto &s : recent_fsd) {
-			fsd_entropy->Add( s.second.value / fsd_total );
-		}
-		
-
 		for (i=0; i < num_ports; i++) {
 			int k, srcp=0, dstp=0;
 			int srcip=0, dstip=0;
@@ -275,16 +264,14 @@ void process_entropy() {
 		dstip_entropy->SetCount(UINT32_MAX);
 		packet_sizes_entropy->SetCount(NUM_ENTROPY_PACKET_SIZES);
 		flag_df_entropy->SetCount(g_total_packets);
-		fsd_entropy->SetCount(all_fsd.size());
-
+		
+		
 		intervals[j].ent_srcport = srcport_entropy->GetValue();
 		intervals[j].ent_dstport = dstport_entropy->GetValue();
 		intervals[j].ent_srcip = srcip_entropy->GetValue();
 		intervals[j].ent_dstip = dstip_entropy->GetValue();
 		intervals[j].ent_pkt_sizes = packet_sizes_entropy->GetValue();
-
 		intervals[j].ent_flag_df = flag_df_entropy->GetValue();
-		intervals[j].ent_fsd = fsd_entropy->GetValue();
 
 		if(verbose) {
 			printf("%3d, pn=%4d, S(pn)=%0.2lf%%, S(bn)=%0.2lf%%, S(sp)=%0.2lf%%, S(dp)=%0.2lf%% S(sip)=%0.2lf%%, S(dip)=%0.2lf%%\n",
@@ -315,7 +302,7 @@ void process_entropy() {
 		t_total_bytes += intervals[j1].num_bytes;
 		
 		// fsd entropy
-		fsd_update(j1);
+		fsd->fsd_update(j1);
 	}
 }
 
@@ -490,8 +477,9 @@ int parse_pcap(std::string filename) {
 		
 		// if(ip->flags_fo & (1 << 14)) {
 		if( ip->flags_fo & (1 << (7-1)) ) {
-			if(verbose)
+			if(verbose) {
 				std::cout << "DF ";
+			}
 			interval.num_df += 1;
 		} else {
 			// std::cout << "NO dont fragment flag\n";
@@ -508,11 +496,10 @@ int parse_pcap(std::string filename) {
 			// std::cout << "test: " << match << " : " << ips[1] <<"\n";
 			if(!std::any_of(ips.begin(), ips.end(), [&](int i){ return i == match; })) {
 				// skip packet
-				// exit(0);
 				continue;
 			}
 		}
-
+		
 		src_addr = src_addr % num_ports;
 		dst_addr = dst_addr % num_ports;
 		
@@ -529,22 +516,7 @@ int parse_pcap(std::string filename) {
 		}
 		
 		// fsd
-		/*
-		uint64_t h = calc_hash(src_addr, src_port, dst_addr, dst_port, 0);
-		bool found = false;
-		for(auto& tr : interval.fsd_traces) {
-			if(tr.first == h) {
-				tr.second += pkt_size;
-				found = true;
-				break;
-			}
-		}
-		if (!found) {
-			interval.fsd_traces.emplace_back(h, pkt_size);
-		}
-		all_fsd.insert(h);
-		*/
-		fsd_insert(src_addr, src_port, dst_addr, dst_port, 0, pkt_size, i);
+		fsd->fsd_insert(src_addr, src_port, dst_addr, dst_port, 0, pkt_size, i);
 		
 		t_total_packets++;
 	}

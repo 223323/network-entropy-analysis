@@ -1,4 +1,4 @@
-all: entropy merge
+all: entropy 
 
 entropy: src/process_entropy.cpp src/fsd.cpp src/Entropy.cpp
 	g++ $^ -g -o $@ -lpcap -std=c++14 -Wno-address-of-packed-member

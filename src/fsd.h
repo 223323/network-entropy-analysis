@@ -22,7 +22,6 @@ class Fsd {
 class MyFsd : public Fsd {
 	public:
 	void fsd_update(int i);
-	// void fsd_insert(int src_addr, int src_port, int dst_addr, int dst_port, int type, int pkt_size, int interval_idx);
 };
 
 #define NUM_ADDR 1000
@@ -36,7 +35,6 @@ class Fsd2 : public Fsd {
 	int flow_size[NUM_SAMPLES];
 	int flow_size_sub[NUM_SAMPLES];
 	int flow_counter[NUM_SAMPLES];
-	double ent_flowsize[NUM_SAMPLES];
 	
 	void fsd_update(int i);
 	void fsd_prepare();

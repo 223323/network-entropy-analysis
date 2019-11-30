@@ -39,7 +39,7 @@ int g_total_packets = 0;
 
 std::vector<Interval> intervals;
 Entropy* entropy_factory = new ShannonEntropy(0);
-Fsd* fsd = new MyFsd();
+Fsd* fsd = 0;
 
 // -----------------
 
@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
 		printf("%s <pcap/ns2 file>\n", argv[0]);
 		return -1;
 	}
-	fsd = new MyFsd();
+	fsd = new Fsd2();
 	std::string filename = "nopcap";
 	for(int i=1; i < argc; i++) {
 		std::string arg = std::string(argv[i]);

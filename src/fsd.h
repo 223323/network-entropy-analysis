@@ -16,6 +16,7 @@ class Fsd {
 	virtual void fsd_prepare();
 	virtual void fsd_update(int i) {}
 	virtual void fsd_insert(int src_addr, int src_port, int dst_addr, int dst_port, int type, int pkt_size, int interval_idx);
+	void fsd_update_recent(int i);
 };
 
 class MyFsd : public Fsd {

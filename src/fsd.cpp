@@ -14,7 +14,7 @@ static uint32_t calc_hash2(int sip, int sport, int proto) {
 std::list<std::pair<uint64_t, Window>> recent_fsd;
 std::set<uint64_t> all_fsd;
 
-void MyFsd::fsd_update(int i) {
+void Fsd::fsd_update_recent(int i) {
 	for(auto& s : intervals[i].fsd_traces) {
 		bool found=false;
 		for(auto r = recent_fsd.begin(); r != recent_fsd.end(); ) {
@@ -46,24 +46,27 @@ void MyFsd::fsd_update(int i) {
 			recent_fsd.push_back( { s.first.h, {.last_seen=i, .value=s.second} } );
 		}
 	}
-	
-	// 
-	std::unique_ptr<Entropy> fsd_entropy(entropy_factory->New());
-	double fsd_total = 0;
-	for(auto &s : recent_fsd) {
-		fsd_total += s.second.value;
+}
+void MyFsd::fsd_update(int i) {
+	int j = i - num_subintervals;
+	if(j >= 0) {
+		std::unique_ptr<Entropy> fsd_entropy(entropy_factory->New());
+		double fsd_total = 0;
+		for(auto &s : recent_fsd) {
+			fsd_total += s.second.value;
+		}
+		for(auto &s : recent_fsd) {
+			fsd_entropy->Add( s.second.value / fsd_total );
+		}
+		fsd_entropy->SetCount(all_fsd.size());
+		intervals[j].ent_fsd = fsd_entropy->GetValue();
 	}
-	for(auto &s : recent_fsd) {
-		fsd_entropy->Add( s.second.value / fsd_total );
-	}
-	fsd_entropy->SetCount(all_fsd.size());
-	intervals[i].ent_fsd = fsd_entropy->GetValue();
-	// fsd->fsd_update(j1);
+	Fsd::fsd_update_recent(i);
 }
 
 void Fsd::fsd_prepare() {
 	for(int i=0; i < num_subintervals; i++) {
-		fsd_update(i);
+		fsd_update_recent(i);
 	}
 }
 

@@ -103,7 +103,6 @@ double RenyiEntropy::GetValue(bool normalized) {
 	if (m_value == 0) return 0;
 	double denom = log(pow(m_count, (1 - m_q)));
 	return std::abs( log(m_value) * (denom != 0 ? (100.0 / denom) : 0) );
-	
 }
 
 Entropy* RenyiEntropy::New() {

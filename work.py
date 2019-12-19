@@ -38,12 +38,14 @@ entropies = [
 	# ('renyi', (-2,2,0.1)),
 	# ('renyi2', (0,2,0.1)),
 	
-	
 	('shannon', (0,0,1)),
 	# ('bhatiasingh', (3.3,15,0.1)),
+	('bhatiasingh', (0.0,15,0.1)),
 	('ubriaco', (0,1,0.1)),
 	('tsalis2', (-2,2,0.1)),
 	('renyi', (-2,2,0.1)),
+	
+	# ('renyi', (0,1,0.1)),
 ]
 
 cusums = [

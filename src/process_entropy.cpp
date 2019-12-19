@@ -115,7 +115,7 @@ int main(int argc, char* argv[]) {
 			entropy_factory = new BhatiaSinghEntropy(0);
 		} else if(arg == "--ubriaco") {
 			entropy_factory = new UbriacoEntropy(0);
-		} else if(arg == "--ubriaco") {
+		} else if(arg == "--shannon") {
 			entropy_factory = new ShannonEntropy(0);
 		} else if(arg == "--byte-entropy") {
 			use_byte_entropy = true;
@@ -195,7 +195,6 @@ void process_entropy() {
 		total_syn += intervals[i].num_syn;
 		total_df += intervals[i].num_df;
 		total_bytes += intervals[i].num_bytes;
-		
 	}
 	fsd->fsd_prepare();
 	t_total_bytes = total_bytes;

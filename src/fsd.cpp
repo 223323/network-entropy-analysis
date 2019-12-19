@@ -18,9 +18,8 @@ void Fsd::fsd_update_recent(int i) {
 	for(auto& s : intervals[i].fsd_traces) {
 		bool found=false;
 		for(auto r = recent_fsd.begin(); r != recent_fsd.end(); ) {
-			if(r->first == s.first.h ) {
+			if(r->first == s.first.h) {
 				found = true;
-
 				int a = std::max(0,r->second.last_seen-num_subintervals);
 				int b = std::min(r->second.last_seen, i-num_subintervals);
 				for(int j = a; j < b; j++) {
@@ -48,6 +47,9 @@ void Fsd::fsd_update_recent(int i) {
 	}
 }
 
+// #include <fstream>
+// std::ofstream out_fsd("output-fsd.bin", std::ios::out);
+// std::ofstream out_entropy("output-entropy.bin", std::ios::out);
 void MyFsd::fsd_update(int i) {
 	int j = i - num_subintervals;
 	if(j >= 0) {
@@ -57,10 +59,12 @@ void MyFsd::fsd_update(int i) {
 			fsd_total += s.second.value;
 		}
 		for(auto &s : recent_fsd) {
+			// out_fsd << (s.second.value / fsd_total) << ", " << "\n";
 			fsd_entropy->Add( s.second.value / fsd_total );
 		}
 		fsd_entropy->SetCount(all_fsd.size());
 		intervals[j].ent_fsd = fsd_entropy->GetValue();
+		// out_entropy << fsd_entropy->GetValue() << ", " << "\n";
 	}
 	Fsd::fsd_update_recent(i);
 }
@@ -92,6 +96,11 @@ void Fsd::fsd_insert(int src_addr, int src_port, int dst_addr, int dst_port, int
 	}
 	all_fsd.insert(h);
 }
+
+// void fsd_done() {
+	// out_fsd.close();
+	// out_entropy.close();
+// }
 
 
 /*
@@ -229,15 +238,15 @@ void Fsd2::fsd_update(int j) {
 		}
 	}
 
+	std::unique_ptr<Entropy> fsd_entropy(entropy_factory->New());
 	for (i=0; i < num_flows; i++) {
 		if (flow_size_sub[i] != 0) {
 			double p = flow_size[i] / (double)num_bytes;
-			std::unique_ptr<Entropy> fsd_entropy(entropy_factory->New());
 			fsd_entropy->Add( p );
-			fsd_entropy->SetCount(num_flows);
-			intervals[j-num_subintervals].ent_fsd = fsd_entropy->GetValue();
 		}
 		flow_size[i] += flow_bytes[j][i];
 		flow_size_sub[i] += flow_bytes[j][i] - flow_bytes[j-NUM_SUBINTERVALS][i];
+		fsd_entropy->SetCount(num_flows);
+		intervals[j-num_subintervals].ent_fsd = fsd_entropy->GetValue();
 	}
 }

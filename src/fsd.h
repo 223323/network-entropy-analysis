@@ -25,7 +25,7 @@ class MyFsd : public Fsd {
 };
 
 #define NUM_ADDR 1000
-#define NUM_FLOWS 1000
+#define NUM_FLOWS 4000
 class Fsd2 : public Fsd {
 	public:
 	int flows[NUM_ADDR][NUM_ADDR];
@@ -33,8 +33,8 @@ class Fsd2 : public Fsd {
 	// std::unique_ptr<Entropy> ent_flowsize[NUM_SAMPLES];
 	int num_flows;
 	
-	int flow_size[NUM_SAMPLES];
-	int flow_size_sub[NUM_SAMPLES];
+	int flow_size[NUM_FLOWS];
+	int flow_size_sub[NUM_FLOWS];
 	int flow_counter[NUM_SAMPLES];
 	
 	void fsd_update(int i);

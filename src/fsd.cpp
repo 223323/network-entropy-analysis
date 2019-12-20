@@ -47,9 +47,6 @@ void Fsd::fsd_update_recent(int i) {
 	}
 }
 
-// #include <fstream>
-// std::ofstream out_fsd("output-fsd.bin", std::ios::out);
-// std::ofstream out_entropy("output-entropy.bin", std::ios::out);
 void MyFsd::fsd_update(int i) {
 	int j = i - num_subintervals;
 	if(j >= 0) {
@@ -77,8 +74,8 @@ void Fsd::fsd_prepare() {
 
 void Fsd::fsd_insert(int src_addr, int src_port, int dst_addr, int dst_port, int type, int pkt_size, int interval_idx) {
 	uint64_t h = calc_hash(src_addr, src_port, dst_addr, dst_port, type);
-	uint32_t src = calc_hash2(src_addr, src_port, type) % 1000;
-	uint32_t dst = calc_hash2(dst_addr, dst_port, type) % 1000;
+	uint32_t src = calc_hash2(src_addr, src_port, type) % NUM_ADDR;
+	uint32_t dst = calc_hash2(dst_addr, dst_port, type) % NUM_ADDR;
 	bool found = false;
 	for(auto& tr : intervals[interval_idx].fsd_traces) {
 		if(tr.first.h == h) {
@@ -109,7 +106,6 @@ flows[src_addr][dst_addr] = 1;
 flows[dst_addr][src_addr] = 1;
 */
 
-
 // 2. assign flow_id
 /*
 for (i=0; i<NUM_PORTS-1; i++)
@@ -132,6 +128,7 @@ for (i=0; i<NUM_PORTS-1; i++)
 */
 #include <iostream>
 void Fsd2::fsd_prepare() {
+	Fsd::fsd_prepare();
 	for(auto &interval : intervals) {
 		for(auto &e : interval.fsd_traces) {
 			auto &i = e.first;
@@ -174,6 +171,36 @@ void Fsd2::fsd_prepare() {
 			}
 		}
 	}
+	
+	// 5. entropy
+	while (j < num_intervals - num_subintervals) {
+		double flowsize_entropy = 0;
+		int num_bytes = 0;
+		int i;
+		for (i=0; i < num_flows; i++) {
+			// if(flow_bytes[j][i]>0) {
+				// flow_counter[j-num_subintervals]++;//IB
+			// }
+
+			if (flow_size_sub[i] != 0) {
+				num_bytes += flow_size[i];
+			}
+		}
+
+		std::unique_ptr<Entropy> fsd_entropy(entropy_factory->New());
+		for (i=0; i < num_flows; i++) {
+			if (flow_size_sub[i] != 0) {
+				double p = flow_size[i] / (double)num_bytes;
+				fsd_entropy->Add(p);
+			}
+			flow_size[i] += flow_bytes[j][i];
+			flow_size_sub[i] += flow_bytes[j][i] - flow_bytes[j-num_subintervals][i];
+			fsd_entropy->SetCount(num_flows);
+		}
+		intervals[j-num_subintervals].ent_fsd = fsd_entropy->GetValue();
+		j++;
+	}
+	
 }
 
 /*
@@ -224,14 +251,14 @@ while (j < max_time)
 */
 
 void Fsd2::fsd_update(int j) {
-	
+	/*
 	double flowsize_entropy = 0;
 	int num_bytes = 0;
 	int i;
 	for (i=0; i < num_flows; i++) {
-		if(flow_bytes[j][i]>0) {
-			flow_counter[j-NUM_SUBINTERVALS]++;//IB
-		}
+		// if(flow_bytes[j][i]>0) {
+			// flow_counter[j-num_subintervals]++;//IB
+		// }
 
 		if (flow_size_sub[i] != 0) {
 			num_bytes += flow_size[i];
@@ -242,11 +269,12 @@ void Fsd2::fsd_update(int j) {
 	for (i=0; i < num_flows; i++) {
 		if (flow_size_sub[i] != 0) {
 			double p = flow_size[i] / (double)num_bytes;
-			fsd_entropy->Add( p );
+			fsd_entropy->Add(p);
 		}
 		flow_size[i] += flow_bytes[j][i];
-		flow_size_sub[i] += flow_bytes[j][i] - flow_bytes[j-NUM_SUBINTERVALS][i];
+		flow_size_sub[i] += flow_bytes[j][i] - flow_bytes[j-num_subintervals][i];
 		fsd_entropy->SetCount(num_flows);
-		intervals[j-num_subintervals].ent_fsd = fsd_entropy->GetValue();
 	}
+	intervals[j-num_subintervals].ent_fsd = fsd_entropy->GetValue();
+	*/
 }

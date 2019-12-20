@@ -22,11 +22,17 @@ files = [
 	# ('lan-big-10-1_20', 500),
 	# ('lan-big-10-1', 500),
 	# ('lan-big-10-1_1', 500),
-	('lan-big-10-1_80', 500),
+	# ('lan-big-10-1_80', 500),
 	# ('lan-big-10-1_160', 500),
+	('my-largescale.ns2', 500),
 ]
 
 pcap_dir = 'pcap/'
+
+def frange(x, y, jump, *args):
+  while x <= y:
+    yield x
+    x += jump
 
 entropies = [
 	# entropy, Q-range
@@ -38,14 +44,18 @@ entropies = [
 	# ('renyi', (-2,2,0.1)),
 	# ('renyi2', (0,2,0.1)),
 	
-	('shannon', (0,0,1)),
 	# ('bhatiasingh', (3.3,15,0.1)),
-	('bhatiasingh', (0.0,15,0.1)),
-	('ubriaco', (0,1,0.1)),
-	('tsalis2', (-2,2,0.1)),
-	('renyi', (-2,2,0.1)),
 	
-	# ('renyi', (0,1,0.1)),
+	
+	# ('shannon', (0,0,1)),
+	# ('bhatiasingh', (0.0,15,0.1)),
+	# ('ubriaco', (0,1,0.1)),
+	# ('tsalis2', (-2,2,0.1)),
+	# ('renyi', (-2,2,0.1)),
+	
+	# ('renyi', (1,2,0.1)),
+	
+	('renyi', [0,0.1,0.2]),
 ]
 
 cusums = [
@@ -59,12 +69,9 @@ r=subprocess.Popen(['make'])
 r.wait()
 if r.returncode != 0: exit(1)
 
-def frange(x, y, jump, *args):
-  while x <= y:
-    yield x
-    x += jump
 
 
+os.system('rm -rf output')
 for ff in files:
 	f, end_time = ff
 	
@@ -72,11 +79,11 @@ for ff in files:
 	# date = today.strftime(' (%d.%m %H:%M:%S)')
 	date = ''
 	
-	pcap_file = os.path.join(pcap_dir, f+'.cap')
+	pcap_file = os.path.join(pcap_dir, f+'.cap' if f.find('.') == -1 else f)
 	attack_times_file = os.path.join(pcap_dir, f+'.csv')
 	for ent in entropies:
 		entropy, ent_range = ent
-		for q in frange(*ent_range):
+		for q in (frange(*ent_range) if type(ent_range) is tuple else ent_range):
 			if os.path.exists('output'):
 				shutil.rmtree('output')
 			
@@ -88,6 +95,7 @@ for ff in files:
 				'--'+entropy,
 				'--entropy-q', ('%.2f' % q),
 				'--no-verbose',
+				'--fsd1',
 			]
 			print('running ', ' '.join(cmdline))
 			process = subprocess.Popen(cmdline)
@@ -145,8 +153,7 @@ for ff in files:
 				
 				shutil.move('output/data', 'output/'+'cusum_'+cus)
 			
-			
-			
+
 			## Save
 			
 			# main_outdir / entropy_dir / outdir

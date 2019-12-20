@@ -91,7 +91,7 @@ Entropy* Tsalis2Entropy::New() {
 
 // Renyi entropy
 // ----------------------------------------
-RenyiEntropy::RenyiEntropy(double Q) : Entropy(Q) {
+RenyiEntropy::RenyiEntropy(double q) : Entropy(q) {
 }
 
 void RenyiEntropy::Add(double p) {

@@ -129,10 +129,13 @@ int main(int argc, char* argv[]) {
 			printf("set subintervals: %d\n", num_subintervals);
 		} else if(arg == "--time-scale") {
 			window_size_seconds = atof(argv[++i]);
-		} else if(arg == "--entropy-q") {
+		} else if(arg == "--entropy-q" || arg == "-Q") {
 			entropy_arg = atof(argv[++i]);
 		} else if(arg == "--no-verbose") {
 			verbose = false;
+		} else if(arg == "--fsd1") {
+			delete fsd;
+			fsd = new MyFsd();
 		} else if(arg == "--src") {
 			server_is_dest = 0;
 		} else if(arg == "--server-ips") {
@@ -159,6 +162,7 @@ int main(int argc, char* argv[]) {
 	size_t ext = filename.rfind('.');
 	if(ext != std::string::npos && filename.substr(ext) == ".ns2") {
 		if(parse_ns2(filename) != 0) {
+			printf("\nfailed to open file \"%s\"\n", filename.c_str());
 			return -1;
 		}
 	} else {
@@ -196,6 +200,7 @@ void process_entropy() {
 		total_df += intervals[i].num_df;
 		total_bytes += intervals[i].num_bytes;
 	}
+	entropy_factory->SetQ(Q);
 	fsd->fsd_prepare();
 	t_total_bytes = total_bytes;
 
@@ -207,7 +212,6 @@ void process_entropy() {
 		}
 		
 		// entropy for each window
-		entropy_factory->SetQ(Q);
 		std::unique_ptr<Entropy> flag_df_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> pktnum_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> bytenum_entropy(entropy_factory->New());
@@ -273,6 +277,7 @@ void process_entropy() {
 		intervals[j].ent_flag_df = flag_df_entropy->GetValue();
 
 		if(verbose) {
+			
 			printf("%3d, pn=%4d, S(pn)=%0.2lf%%, S(bn)=%0.2lf%%, S(sp)=%0.2lf%%, S(dp)=%0.2lf%% S(sip)=%0.2lf%%, S(dip)=%0.2lf%%\n",
 					j,
 					total_packets,
@@ -287,6 +292,7 @@ void process_entropy() {
 			if(verbose_sleep2 > 0) {
 				usleep(verbose_sleep2 * 1000);
 			}
+			
 		}
 		
 		// sliding window swap
@@ -501,18 +507,12 @@ int parse_pcap(std::string filename) {
 		
 		src_addr = src_addr % num_ports;
 		dst_addr = dst_addr % num_ports;
+		int psize = use_byte_entropy ? pkt_size : 1;
 		
-		if(use_byte_entropy) {
-			interval.num_src_ports[src_port] += pkt_size;
-			interval.num_dst_ports[dst_port] += pkt_size;
-			interval.num_src_ips[src_addr] += pkt_size;
-			interval.num_dst_ips[dst_addr] += pkt_size;
-		} else {
-			interval.num_src_ports[src_port]++;
-			interval.num_dst_ports[dst_port]++;
-			interval.num_src_ips[src_addr]++;
-			interval.num_dst_ips[dst_addr]++;
-		}
+		interval.num_src_ports[src_port] += psize;
+		interval.num_dst_ports[dst_port] += psize;
+		interval.num_src_ips[src_addr] += psize;
+		interval.num_dst_ips[dst_addr] += psize;
 		
 		// fsd
 		fsd->fsd_insert(src_addr, src_port, dst_addr, dst_port, 0, pkt_size, i);
@@ -554,7 +554,8 @@ int parse_ns2(std::string filename) {
 			break;
 	}
 #endif
-
+	int has_syn;
+	line[0] = 0;
 	do {
 		if (line[0] == 'r') {
 #if defined(USE_NAM_TRACE)
@@ -578,17 +579,55 @@ int parse_ns2(std::string filename) {
 				auto &interval = intervals[i];
 				
 				interval.num_packets++;
+				interval.num_bytes += pkt_size;
+				
+				if(pkt_size < interval.num_packet_sizes.size()) {
+					interval.num_packet_sizes[pkt_size]++;
+				}
+		
+				has_syn = 0;
 				if (tcp_hdr == 0xa) {
 					interval.num_syn++;
+					has_syn = 1;
 				}
-				interval.num_bytes += pkt_size;
-				if(use_byte_entropy) {
-					interval.num_src_ports[src_addr] += pkt_size;
-					interval.num_dst_ports[dst_addr] += pkt_size;
+				g_total_packets++;
+				
+				if(verbose) {
+					// print IPs
+					printf("%lf %d src ip: [%d:%d] dst ip: [%d:%d] [%s]\n", 
+						time, 
+						sub_int, 
+						src_addr, 
+						src_id, 
+						dst_addr, 
+						dst_id, 
+						has_syn ? "SYN" : ""
+					);
+					if(verbose_sleep1 > 0) {
+						usleep(verbose_sleep1 * 1000);
+					}
+				}
+				
+				/*
+				if( ip->flags_fo & (1 << (7-1)) ) {
+					if(verbose) {
+						std::cout << "DF ";
+					}
+					interval.num_df += 1;
 				} else {
-					interval.num_src_ports[src_addr]++;
-					interval.num_dst_ports[dst_addr]++;
+					// std::cout << "NO dont fragment flag\n";
 				}
+				*/
+				interval.num_df += 1;
+				int psize = use_byte_entropy ? pkt_size : 1;
+				interval.num_src_ports[src_addr] += psize;
+				interval.num_dst_ports[dst_addr] += psize;
+				interval.num_src_ips[src_addr] += psize;
+				interval.num_dst_ips[dst_addr] += psize;
+			
+				// fsd
+				fsd->fsd_insert(src_addr, 0, dst_addr, 0, 0, pkt_size, i);
+				t_total_packets++;
 			}
 		}
 	} while (fgets(line, 100, f) != NULL);

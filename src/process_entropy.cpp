@@ -136,6 +136,9 @@ int main(int argc, char* argv[]) {
 		} else if(arg == "--fsd1") {
 			delete fsd;
 			fsd = new MyFsd();
+		} else if(arg == "--fsd2") {
+			delete fsd;
+			fsd = new Fsd2();
 		} else if(arg == "--src") {
 			server_is_dest = 0;
 		} else if(arg == "--server-ips") {
@@ -572,7 +575,9 @@ int parse_ns2(std::string filename) {
 			       &attr, &pkt_id, &dummy, &tcp_hdr );
 #endif
 
-			if (dst_id == 0) { //1 for Stanislav's scripts, 0 for large scale web
+			#define PROXY_NODE 0 //1 for Stanislav's scripts, 0 for large scale web
+			if (dst_id == PROXY_NODE) {
+				
 				sec = (int)time;
 				sub_int = (int)(fmod(time, 1.0)*num_subintervals);
 				i = sec*num_subintervals+sub_int;

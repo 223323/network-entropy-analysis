@@ -76,8 +76,8 @@ for ff in files:
 	f, end_time = ff
 	
 	today = datetime.datetime.today()
-	# date = today.strftime(' (%d.%m %H:%M:%S)')
-	date = ''
+	date = today.strftime(' (%d.%m-%H:%M)')
+	# date = ''
 	
 	pcap_file = os.path.join(pcap_dir, f+'.cap' if f.find('.') == -1 else f)
 	attack_times_file = os.path.join(pcap_dir, f+'.csv')
@@ -95,7 +95,7 @@ for ff in files:
 				'--'+entropy,
 				'--entropy-q', ('%.2f' % q),
 				'--no-verbose',
-				'--fsd1',
+				# '--fsd1',
 			]
 			print('running ', ' '.join(cmdline))
 			process = subprocess.Popen(cmdline)

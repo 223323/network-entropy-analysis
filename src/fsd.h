@@ -29,7 +29,7 @@ class MyFsd : public Fsd {
 class Fsd2 : public Fsd {
 	public:
 	int flows[NUM_ADDR][NUM_ADDR];
-	int flow_bytes[NUM_SAMPLES][NUM_ADDR];
+	int flow_bytes[NUM_SAMPLES][NUM_FLOWS];
 	// std::unique_ptr<Entropy> ent_flowsize[NUM_SAMPLES];
 	int num_flows;
 	

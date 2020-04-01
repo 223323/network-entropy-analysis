@@ -74,10 +74,10 @@ void Fsd::fsd_prepare() {
 
 void Fsd::fsd_insert(int src_addr, int src_port, int dst_addr, int dst_port, int type, int pkt_size, int interval_idx) {
 	uint64_t h = calc_hash(src_addr, src_port, dst_addr, dst_port, type);
-	// uint32_t src = calc_hash2(src_addr, src_port, type) % NUM_ADDR;
-	// uint32_t dst = calc_hash2(dst_addr, dst_port, type) % NUM_ADDR;
-	uint32_t src = src_addr;
-	uint32_t dst = dst_addr;
+	uint32_t src = calc_hash2(src_addr, src_port, type) % NUM_ADDR;
+	uint32_t dst = calc_hash2(dst_addr, dst_port, type) % NUM_ADDR;
+	// uint32_t src = src_addr;
+	// uint32_t dst = dst_addr;
 	
 	bool found = false;
 	/*
@@ -176,6 +176,7 @@ void Fsd2::fsd_prepare() {
 			}
 		}
 	}
+	
 	// std::cout << "num flows: " << num_flows << "\n";
 	//
 	/*

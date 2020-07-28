@@ -1,14 +1,15 @@
-function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1, adp=false)
+function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times_file, sgn=1, adp=false)
 	
 	graphics_toolkit gnuplot
 	entropy = csvread(entropy_file);
-	attack_start_times = csvread(attack_times);
+	attack_times = csvread(attack_times_file);
 
 	n = length(entropy);
 	t = (0:(n-1))/subintervals;
 	maxt = n/subintervals;
 
-	attack_start_times = attack_start_times(1,:);
+	attack_start_times = attack_times(1,:)
+	attack_end_times = attack_times(2,:)
 	
 	numAttacks = size(attack_start_times)(2);
 	
@@ -55,7 +56,8 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1, a
 			plot(1:n, entropy_filt2, 'c-')
 			
 			# attack times
-			t2=csvread(attack_times)*subintervals;
+			t2=csvread(attack_times_file)*subintervals;
+			% t2=attack_times
 			n2=length(t2);
 			l=prod(size(t2));
 			d = reshape( repmat( reshape(t2, 1, l), 2, 1 ), 1, l*2 );
@@ -92,8 +94,8 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1, a
 			end
 			
 			b = min(n, b);
-			b1 = min(n, a + floor(true_positive_ratio*(b-a))); % (a |=======|--- b)
-			
+			% b1 = min(n, a + floor(true_positive_ratio*(b-a))); % (a |=======|--- b)
+			b1 = floor(attack_end_times(i)*subintervals);
 			% disp(['interval: ' num2str(a) ' ' num2str(b)])
 			
 			% find when did attack start
@@ -176,8 +178,9 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times, sgn=1, a
 			b = n;
 		end
 		
-		b1 = a + floor(true_positive_ratio*(b-a));
-		attack_started = attack_start_times(sampleAttack);
+		% b1 = a + floor(true_positive_ratio*(b-a));
+		b1 = floor(attack_end_times(sampleAttack))*subintervals;
+		attack_started = attack_start_times(sampleAttack)*subintervals;
 		sample_delay = 0;
 		
 		for j = a+1:b1

@@ -26,7 +26,10 @@ files = [
 	# ('lan-big-10-1_1', 500),
 	
 	# ('lan-big-10-1_5', 500),
-	('lan-big-10-1_10', 500),
+	# ('lan-big-10-1_10', 500),
+	('dumbbell-lan-big-1_with_attackers', 500),
+	('dumbbell-lan-big-1_no_attackers', 500),
+	
 	# ('lan-big-10-1_40', 500),
 	# ('lan-big-10-1_20', 500),
 	# ('lan-big-10-1_80', 500),
@@ -57,7 +60,8 @@ entropies = [
 	
 	
 	('shannon', (0,0,1)),
-	('bhatiasingh', (0.5,15,0.1)),
+	# ('bhatiasingh', (0.5,15,0.1)),
+	('bhatiasingh', (0.5,1,0.1)),
 	('ubriaco', (0,1,0.1)),
 	('tsalis2', (-2,2,0.1)),
 	('renyi', (-2,2,0.1)),
@@ -71,7 +75,8 @@ cusums = [
 	'ent_sp',
 	'ent_fsd',
 	'ent_sip',
-	# 'ent_pn',
+	
+	'ent_pn',
 ]
 
 r=subprocess.Popen(['make'])
@@ -104,6 +109,7 @@ for ff in files:
 				'--'+entropy,
 				'--entropy-q', ('%.2f' % q),
 				'--no-verbose',
+				'--server-ips', '10.0.1.2;10.0.1.3;10.0.1.4;10.0.1.5;10.0.1.6'  # server ips for filtering symmetric packets coming from server
 				# '--fsd1',
 			]
 			print('running ', ' '.join(cmdline))

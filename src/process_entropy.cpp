@@ -73,6 +73,8 @@ void init_vectors() {
 		s.num_src_ips.resize(num_ports);
 		s.num_dst_ips.resize(num_ports);
 		s.num_packet_sizes.resize(NUM_ENTROPY_PACKET_SIZES);
+		
+		memset(&s.num_dst_ports[0], 0, sizeof(int) * s.num_dst_ports.size());
 	}
 }
 
@@ -86,8 +88,8 @@ std::vector<std::string> split(const std::string& s, char delimiter) {
    return tokens;
 }
 
-std::vector<int> ips;
-int server_is_dest = 1;
+std::vector<uint32_t> ips;
+int server_is_dest = 0;
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
@@ -146,6 +148,11 @@ int main(int argc, char* argv[]) {
 			std::cout << "ips: " << s_ips << "\n";
 			for(auto ip : split(s_ips, ';')) {
 				ips.push_back(inet_addr(ip.c_str()));
+			}
+			std::cout << "ips hex (little endian - actually its big endian but represented as little on little endian machine)\n";
+			for(auto ip : ips)
+			{
+				std::cout << std::hex << ip << "\n";
 			}
 		} else if(arg == "-vs1") {
 			verbose_sleep1 = atoi(argv[++i]);
@@ -223,7 +230,8 @@ void process_entropy() {
 		std::unique_ptr<Entropy> srcip_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> dstip_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> packet_sizes_entropy(entropy_factory->New());
-
+		
+		std::cout << "old dport ent: " << dstport_entropy->GetValue() << "\n";
 		for (i=0; i < num_subintervals; i++) {
 			if (intervals[j+i].num_packets != 0) {
 				pktnum_entropy->Add( intervals[j+i].num_packets / (double)total_packets );
@@ -237,33 +245,46 @@ void process_entropy() {
 		intervals[j].tot_pktnum = total_packets;
 		intervals[j].tot_syn = total_syn;
 		
-		for (i=0; i < num_ports; i++) {
-			int k, srcp=0, dstp=0;
-			int srcip=0, dstip=0;
-			for (k=0; k < num_subintervals; k++) {
-				auto &interval = intervals[j+k];
-				srcp += interval.num_src_ports[i];
-				dstp += interval.num_dst_ports[i];
-				srcip += interval.num_src_ips[i];
-				dstip += interval.num_dst_ips[i];
-			}
+		if(total_packets > 0) {
+			for (i=0; i < num_ports; i++) {
+				int k, srcp=0, dstp=0;
+				int srcip=0, dstip=0;
+				for (k=0; k < num_subintervals; k++) {
+					const auto &interval = intervals[j+k];
+					srcp += interval.num_src_ports[i];
+					dstp += interval.num_dst_ports[i];
+					srcip += interval.num_src_ips[i];
+					dstip += interval.num_dst_ips[i];
+				}
 
-			double total_bytes2 = use_byte_entropy ? total_bytes : total_packets;
-			if (srcp != 0) srcport_entropy->Add(srcp / total_bytes2);
-			if(srcip != 0) srcip_entropy->Add(srcip / total_bytes2);
-			if (dstp != 0) dstport_entropy->Add(dstp / total_bytes2);
-			if(dstip != 0) dstip_entropy->Add(dstip / total_bytes2);
-		}
-		
-		for (i=0; i < NUM_ENTROPY_PACKET_SIZES; i++) {
-			int ps = 0;
-			for (int k=0; k < num_subintervals; k++) {
-				ps += intervals[j+k].num_packet_sizes[i];
+				double total_bytes2 = use_byte_entropy ? total_bytes : total_packets;
+				if (srcp != 0) srcport_entropy->Add((double)srcp / total_bytes2);
+				if(srcip != 0) srcip_entropy->Add((double)srcip / total_bytes2);
+				
+				double dent = (double)dstp / total_bytes2;
+				if(i == 80)
+				{
+					std::cout << std::dec << "port: " << i << " ent: " << dent << " total: " << total_bytes2 << "\n";
+				}
+				else if(dstp > 0)
+				{
+					std::cout << std::dec << "!! port: " << i << " ent: " << dent <<  " dstp: " << dstp << " total: " << total_bytes2 << "\n";
+				}
+				
+				if (dstp != 0) dstport_entropy->Add((double)dstp / total_bytes2);
+				if(dstip != 0) dstip_entropy->Add((double)dstip / total_bytes2);
 			}
+			
+			for (i=0; i < NUM_ENTROPY_PACKET_SIZES; i++) {
+				int ps = 0;
+				for (int k=0; k < num_subintervals; k++) {
+					ps += intervals[j+k].num_packet_sizes[i];
+				}
 
-			if (ps != 0) packet_sizes_entropy->Add(ps / (double)total_packets);
+				if (ps != 0) packet_sizes_entropy->Add(ps / (double)total_packets);
+			}
 		}
-		
+		std::cout << "new dport ent: " << dstport_entropy->GetValue() << "\n";
 		srcport_entropy->SetCount(UINT16_MAX);
 		srcip_entropy->SetCount(UINT32_MAX);
 		dstport_entropy->SetCount(UINT16_MAX);
@@ -426,6 +447,10 @@ int parse_pcap(std::string filename) {
 			}
 		}
 
+		if(ip->proto != PROTO_L4_TCP) {
+			continue;
+		}
+		
 		if(sec_first) {
 			sec_first = 0;
 			sec_offs = pcap_hdr.ts.tv_sec + pcap_hdr.ts.tv_usec * 1e-6 - 0.01;
@@ -438,15 +463,50 @@ int parse_pcap(std::string filename) {
 		if(sec >= max_time) {
 			return 0;
 		}
+
+		// n_bytes, n_packets, n_pkts[sport], n_pkts[dport]
+		
+		src_addr = ip->saddr.ip;
+		dst_addr = ip->daddr.ip;
+		
+		if(ips.size() > 0) {
+			uint32_t match = server_is_dest ? dst_addr : src_addr;
+			// std::cout << "test: " << match << " : " << ips[1] <<"\n";
+			if(std::any_of(ips.begin(), ips.end(), [&](uint32_t i){ return i == match; })) {
+				// skip packet
+				std::cout << "test: " << std::hex << match << "\n";
+				continue;
+			}
+		}
 		
 		g_total_packets++;
+		
+		if(verbose)
+			std::cout << "packet size: " << pkt_size << " ";
+		
+		if(verbose)
+			std::cout << "\n";
 		
 		const int i = num_intervals * time / (double)max_time;
 		// const int i = sec*num_subintervals+sub_int;
 		auto& interval = intervals[i];
 		
 		bool has_syn = false;
-
+		
+		// if(ip->flags_fo & (1 << 14)) {
+		if( ip->flags_fo & (1 << (7-1)) ) {
+			if(verbose) {
+				std::cout << "DF ";
+			}
+			interval.num_df += 1;
+		} else {
+			// std::cout << "NO dont fragment flag\n";
+		}
+		
+		if(pkt_size < interval.num_packet_sizes.size()) {
+			interval.num_packet_sizes[pkt_size]++;
+		}
+		
 		if(ip->proto == PROTO_L4_TCP && tcp->flags == tcp_flags::SYN) {
 			has_syn = true;
 			interval.num_syn++;
@@ -463,19 +523,10 @@ int parse_pcap(std::string filename) {
 				ntohs(tcp->dport), 
 				has_syn ? "SYN" : ""
 			);
+			
 			if(verbose_sleep1 > 0) {
 				usleep(verbose_sleep1 * 1000);
 			}
-		}
-
-		// n_bytes, n_packets, n_pkts[sport], n_pkts[dport]
-		interval.num_bytes += pkt_size;
-		interval.num_packets++;
-		
-		if(verbose)
-			std::cout << "packet size: " << pkt_size << " ";
-		if(pkt_size < interval.num_packet_sizes.size()) {
-			interval.num_packet_sizes[pkt_size]++;
 		}
 		
 		if(ip->proto == PROTO_L4_TCP) {
@@ -483,34 +534,16 @@ int parse_pcap(std::string filename) {
 			dst_port = ntohs(tcp->dport) % num_ports;
 		}
 		
-		// if(ip->flags_fo & (1 << 14)) {
-		if( ip->flags_fo & (1 << (7-1)) ) {
-			if(verbose) {
-				std::cout << "DF ";
-			}
-			interval.num_df += 1;
-		} else {
-			// std::cout << "NO dont fragment flag\n";
-		}
-		
-		if(verbose)
-		std::cout << "\n";
-		
-		src_addr = ip->saddr.ip;
-		dst_addr = ip->daddr.ip;
-		
-		if(ips.size() > 0) {
-			uint32_t match = server_is_dest ? dst_addr : src_addr;
-			// std::cout << "test: " << match << " : " << ips[1] <<"\n";
-			if(!std::any_of(ips.begin(), ips.end(), [&](int i){ return i == match; })) {
-				// skip packet
-				continue;
-			}
-		}
+		if(dst_port != 80)
+			std::cout << std::dec << "dport: " << dst_port << "\n";
 		
 		src_addr = src_addr % num_ports;
 		dst_addr = dst_addr % num_ports;
 		int psize = use_byte_entropy ? pkt_size : 1;
+		
+		interval.num_bytes += pkt_size;
+		
+		interval.num_packets++;
 		
 		interval.num_src_ports[src_port] += psize;
 		interval.num_dst_ports[dst_port] += psize;

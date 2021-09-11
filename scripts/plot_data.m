@@ -1,7 +1,8 @@
 function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, attack_times="data/attack-times.csv")
 	data = dlmread(filename);
 	data = [repmat([0], 1, subintervals/2) data];
-	graphics_toolkit gnuplot
+	%graphics_toolkit gnuplot
+	graphics_toolkit fltk
 	end_interval = find(data == 0, 1, 'first');
 	
 	data(data == Inf) = 0;
@@ -13,7 +14,7 @@ function plot_data(filename, start_time=0.1, end_time=115, subintervals=10, atta
 	end_interval = end_time*subintervals;
 	span_interval = end_interval-start_interval+1;
 	t = linspace(start_interval/subintervals, end_interval/subintervals, span_interval);
-	h = figure('visible', false);
+	h = figure('visible', true);
 	if length(data) < start_interval
 		disp([filename 'not printed'])
 		return

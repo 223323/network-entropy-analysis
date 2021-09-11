@@ -1,6 +1,7 @@
 function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times_file, sgn=1, adp=false)
 	
-	graphics_toolkit gnuplot
+	%graphics_toolkit gnuplot
+	graphics_toolkit fltk
 	entropy = csvread(entropy_file);
 	attack_times = csvread(attack_times_file);
 
@@ -46,7 +47,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times_file, sgn
 		######### DEBUG ############
 		if false
 			hold off
-			f1 = figure(2, 'visible', false);
+			f1 = figure(2, 'visible', true);
 			legend('detection', 'diff', 'sqrt(diff^2)', 'attack', 'Location', 'NorthWest');
 			b = max(entropy_filt + entropy_filt2);
 			
@@ -196,10 +197,10 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times_file, sgn
 		sdelay = [sdelay sample_delay];
 	end
 
-	graphics_toolkit gnuplot
+	graphics_toolkit fltk
 	% true positive rate, false positive rate
 	% -----------------
-	f1 = figure(1, 'visible', false);
+	f1 = figure(1, 'visible', true);
 	plot(thplot, tpplot/numAttacks, 'b-', 'linewidth', 2);
 	hold on
 	plot(thplot, fpplot/numAttacks, 'r-', 'linewidth', 2);
@@ -220,7 +221,7 @@ function ddos_cusum2_i3_delay(entropy_file, subintervals, attack_times_file, sgn
 
 	% threshold, average delay
 	% -----------------
-	f3 = figure(3, 'visible', false);
+	f3 = figure(3, 'visible', true);
 	plot(thplot, mdelay, 'b-');
 	hold on
 	plot(thplot, sdelay, 'c-');

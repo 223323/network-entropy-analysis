@@ -231,7 +231,7 @@ void process_entropy() {
 		std::unique_ptr<Entropy> dstip_entropy(entropy_factory->New());
 		std::unique_ptr<Entropy> packet_sizes_entropy(entropy_factory->New());
 		
-		std::cout << "old dport ent: " << dstport_entropy->GetValue() << "\n";
+		// std::cout << "old dport ent: " << dstport_entropy->GetValue() << "\n";
 		for (i=0; i < num_subintervals; i++) {
 			if (intervals[j+i].num_packets != 0) {
 				pktnum_entropy->Add( intervals[j+i].num_packets / (double)total_packets );
@@ -262,14 +262,14 @@ void process_entropy() {
 				if(srcip != 0) srcip_entropy->Add((double)srcip / total_bytes2);
 				
 				double dent = (double)dstp / total_bytes2;
-				if(i == 80)
-				{
-					std::cout << std::dec << "port: " << i << " ent: " << dent << " total: " << total_bytes2 << "\n";
-				}
-				else if(dstp > 0)
-				{
-					std::cout << std::dec << "!! port: " << i << " ent: " << dent <<  " dstp: " << dstp << " total: " << total_bytes2 << "\n";
-				}
+				// if(i == 80)
+				// {
+				// 	std::cout << std::dec << "port: " << i << " ent: " << dent << " total: " << total_bytes2 << "\n";
+				// }
+				// else if(dstp > 0)
+				// {
+				// 	std::cout << std::dec << "!! port: " << i << " ent: " << dent <<  " dstp: " << dstp << " total: " << total_bytes2 << "\n";
+				// }
 				
 				if (dstp != 0) dstport_entropy->Add((double)dstp / total_bytes2);
 				if(dstip != 0) dstip_entropy->Add((double)dstip / total_bytes2);
@@ -284,7 +284,7 @@ void process_entropy() {
 				if (ps != 0) packet_sizes_entropy->Add(ps / (double)total_packets);
 			}
 		}
-		std::cout << "new dport ent: " << dstport_entropy->GetValue() << "\n";
+		// std::cout << "new dport ent: " << dstport_entropy->GetValue() << "\n";
 		srcport_entropy->SetCount(UINT16_MAX);
 		srcip_entropy->SetCount(UINT32_MAX);
 		dstport_entropy->SetCount(UINT16_MAX);
@@ -534,11 +534,11 @@ int parse_pcap(std::string filename) {
 			dst_port = ntohs(tcp->dport) % num_ports;
 		}
 		
-		if(dst_port != 80)
-			std::cout << std::dec << "dport: " << dst_port << "\n";
+		// if(dst_port != 80)
+		// 	std::cout << std::dec << "dport: " << dst_port << "\n";
 		
-		src_addr = src_addr % num_ports;
-		dst_addr = dst_addr % num_ports;
+		src_addr = std::abs( src_addr % num_ports );
+		dst_addr = std::abs( dst_addr % num_ports );
 		int psize = use_byte_entropy ? pkt_size : 1;
 		
 		interval.num_bytes += pkt_size;
@@ -658,8 +658,8 @@ int parse_ns2(std::string filename) {
 				*/
 				interval.num_df += 1;
 				int psize = use_byte_entropy ? pkt_size : 1;
-				interval.num_src_ports[src_addr] += psize;
-				interval.num_dst_ports[dst_addr] += psize;
+				// interval.num_src_ports[src_addr] += psize;
+				// interval.num_dst_ports[dst_addr] += psize;
 				interval.num_src_ips[src_addr] += psize;
 				interval.num_dst_ips[dst_addr] += psize;
 			

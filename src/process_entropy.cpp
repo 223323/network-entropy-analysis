@@ -33,6 +33,7 @@
 int num_intervals;
 int num_subintervals = NUM_SUBINTERVALS; // intervals per second
 int max_time = MAX_TIME;
+int start_time = 0;
 int num_ports = NUM_PORTS;
 double window_size_seconds = 1.0;
 int g_total_packets = 0;
@@ -65,7 +66,7 @@ int threshold = 0;
 
 
 void init_vectors() {
-	num_intervals = max_time * num_subintervals/window_size_seconds;
+	num_intervals = (max_time - start_time) * num_subintervals/window_size_seconds;
 	intervals.resize(num_intervals+1);
 	for(auto &s : intervals) {
 		s.num_src_ports.resize(num_ports);
@@ -98,9 +99,10 @@ int main(int argc, char* argv[]) {
 	}
 	fsd = new Fsd2();
 	std::string filename = "nopcap";
+	printf("%d \n", argc);
 	for(int i=1; i < argc; i++) {
 		std::string arg = std::string(argv[i]);
-		
+		printf("%d %s \n", i, arg.c_str());
 		if(arg == "-t") {
 			threshold = atoi(argv[++i]);
 		} else if(arg == "-tm") {
@@ -123,6 +125,9 @@ int main(int argc, char* argv[]) {
 			use_byte_entropy = true;
 		} else if(arg == "--num-ports") {
 			num_ports = atoi(argv[++i]);
+		} else if(arg == "--start-time") {
+			start_time = atoi(argv[++i]);
+			printf("set start-time: %d\n", start_time);
 		} else if(arg == "--max-time" || arg == "--end-time") {
 			max_time = atoi(argv[++i]);
 			printf("set end-time: %d\n", max_time);
@@ -210,9 +215,12 @@ void process_entropy() {
 		total_df += intervals[i].num_df;
 		total_bytes += intervals[i].num_bytes;
 	}
+	printf("processing entropy 1 \n");
 	entropy_factory->SetQ(Q);
 	fsd->fsd_prepare();
 	t_total_bytes = total_bytes;
+	
+	printf("processing entropy 2 \n");
 
 	// calculate entropy for each window
 	for (j=0; j < num_intervals - num_subintervals; j++) {
@@ -245,6 +253,7 @@ void process_entropy() {
 		intervals[j].tot_pktnum = total_packets;
 		intervals[j].tot_syn = total_syn;
 		
+		printf("processing entropy 3 \n");
 		if(total_packets > 0) {
 			for (i=0; i < num_ports; i++) {
 				int k, srcp=0, dstp=0;
@@ -460,6 +469,9 @@ int parse_pcap(std::string filename) {
 		sec = (int)time;
 		sub_int = (int)(fmod(time, 1.0)*num_subintervals);
 		
+		if(sec < start_time) {
+			continue;
+		}		
 		if(sec >= max_time) {
 			return 0;
 		}
@@ -487,7 +499,7 @@ int parse_pcap(std::string filename) {
 		if(verbose)
 			std::cout << "\n";
 		
-		const int i = num_intervals * time / (double)max_time;
+		const int i = num_intervals * (time-start_time) / (double)(max_time-start_time);
 		// const int i = sec*num_subintervals+sub_int;
 		auto& interval = intervals[i];
 		

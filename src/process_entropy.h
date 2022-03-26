@@ -7,8 +7,8 @@
 #define NUM_SUBINTERVALS 10
 #define NUM_PORTS 5000
 #define NUM_ENTROPY_PACKET_SIZES 1500
-// #define MAX_TIME 2000 // in seconds
-#define MAX_TIME 500 // in seconds
+ #define MAX_TIME 12*3600 // in seconds
+//#define MAX_TIME 500 // in seconds
 
 extern int max_time;
 #define Q entropy_arg
